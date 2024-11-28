@@ -1,4 +1,7 @@
+# Project VeloDB Neo4J
+Bij dit project hoort nog een aparte PDF met iets diepere documentatie van wat ik gedaan heb. In deze markdown allesinds kan u de basis vinden van wat ik exact gedaan heb op dit moment.
 ## Startdata
+Eerst importeren we onze datasets die we uit onze Postgres databank gehaald hebben. In mijn geval heb ik dit met 3 aparte .csv bestanden gedaan voor Stations, Ritten, en Gebruikers.
 ```cypher
 LOAD CSV WITH HEADERS FROM 'file:///stations.csv' AS row
 MERGE (s:Station {stationid: row.stationid, name: row.name})
@@ -36,7 +39,9 @@ MATCH (r:Rit {rideid: row.rideid})
 MERGE (r)-[:PERFORMED_BY]->(g);
 ```
 
-### Meest gebruikte voertuigen:
+## Antwoorden op de verschillende queries:
+### Wat zijn de meest gebruikte voertuigen?
+Om een antwoord op deze query te kunnen voorzien, moeten we een relatie kunnen leggen tussen Voertuigen en Ritten. Dat kunnen we doen aan de hand van de USES relatie die we daarnet aangemaakt hebben:
 ```cypher
 MATCH (v:Voertuig)<-[:USES]-(r:Rit)
 RETURN v.vehicleid, COUNT(r) AS ritten
