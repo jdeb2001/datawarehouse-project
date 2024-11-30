@@ -3,14 +3,15 @@ Hieronder de stappen die genomen zijn voor het opzetten van de databank in Mongo
 
 ## Subset VeloDB exporteren naar JSON
 Testdata om mee te beginnen.
-```sql
-SELECT row_to_json(t)
+
+```SQL
+SELECT ROW_TO_JSON(testdata)
 FROM (SELECT rideid, startpoint, endpoint, starttime, endtime,
-             (SELECT array_to_json(array_agg(row_to_json(v)))
+             (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(v)))
               FROM (SELECT vehicleid, serialnumber,
-                           (SELECT array_to_json(array_agg(row_to_json(blot)))
+                           (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(blot)))
                             FROM (SELECT b.bikelotid, b.deliverydate,
-                                         (SELECT array_to_json(array_agg(row_to_json(btyp)))
+                                         (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(btyp)))
                                           FROM (SELECT *
                                                 FROM bike_types
                                                 WHERE bike_types.biketypeid = b.biketypeid
@@ -25,9 +26,27 @@ FROM (SELECT rideid, startpoint, endpoint, starttime, endtime,
                     WHERE r.vehicleid = vehicles.vehicleid
                     ) AS "v"
               ) AS "vehicle_info", -- array met alle info over elk voertuig
-             subscriptionid, startlockid, endlockid
+             (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(sub)))
+              FROM (SELECT subscriptionid, validfrom,
+                           (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(subtyp)))
+                            FROM (SELECT *
+                                  FROM subscription_types AS "st"
+                                  WHERE st.subscriptiontypeid = s.subscriptiontypeid
+                                  ) AS "subtyp"
+                            ) AS "sub_type",
+                           (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(u)))
+                            FROM (SELECT *
+                                  FROM velo_users AS "u"
+                                  WHERE u.userid = s.userid
+                                  ) AS "u"
+                            ) AS "velo_user"
+                    FROM subscriptions AS "s"
+                    WHERE s.subscriptionid = r.subscriptionid
+                    ) AS "sub"
+              ) AS "sub_info",
+          startlockid, endlockid
       FROM rides AS "r"
-      WHERE date(starttime) BETWEEN to_date('2019-09-22', 'YYYY-MM-DD') AND to_date('2019-09-24', 'YYYY-MM-DD')
+      WHERE DATE(starttime) BETWEEN TO_DATE('2019-09-22', 'YYYY-MM-DD') AND TO_DATE('2019-09-24', 'YYYY-MM-DD')
       LIMIT 20000
-      ) AS t;
+      ) AS "testdata";
 ```
