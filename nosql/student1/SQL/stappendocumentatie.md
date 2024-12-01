@@ -57,3 +57,4 @@ Bij het installeren van MongoDB op het systeem, werd de default instelling "Inst
 
 ### Opzetten databank met JSON file
 
+[//]: # (pending)
