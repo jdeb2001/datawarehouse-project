@@ -1,5 +1,5 @@
 # Project VeloDB Neo4J
-Bij dit project hoort nog een aparte PDF/Word document met iets diepere documentatie van wat ik gedaan heb. In deze markdown kan u de basis vinden van wat ik exact gedaan heb op dit moment.
+Bij dit project hoort nog een apart Word document met iets diepgaandere documentatie van wat ik hier gedaan heb. In deze markdown kan u de basis vinden van wat ik exact gedaan heb op dit moment.
 ## Startdata
 Eerst importeren we onze datasets die we uit onze Postgres databank gehaald hebben. In mijn geval heb ik dit met 3 aparte .csv bestanden gedaan voor Stations, Ritten, en Gebruikers.
 ```cypher
