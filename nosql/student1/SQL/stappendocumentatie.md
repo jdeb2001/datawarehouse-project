@@ -5,7 +5,7 @@ Hieronder de stappen die genomen zijn voor het opzetten van de databank in Mongo
 Testdata om mee te beginnen.
 
 ```SQL
-SELECT ROW_TO_JSON(testdata)
+SELECT ROW_TO_JSON(testdata) AS "ride"
 FROM (SELECT rideid, startpoint, endpoint, starttime, endtime,
              (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(v)))
               FROM (SELECT vehicleid, serialnumber,
@@ -25,7 +25,7 @@ FROM (SELECT rideid, startpoint, endpoint, starttime, endtime,
                     FROM vehicles
                     WHERE r.vehicleid = vehicles.vehicleid
                     ) AS "v"
-              ) AS "vehicle_info", -- array met alle info over elk voertuig
+              ) AS "vehicle_info", -- array met alle info over het voertuig per rit
              (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(sub)))
               FROM (SELECT subscriptionid, validfrom,
                            (SELECT ARRAY_TO_JSON(ARRAY_AGG(ROW_TO_JSON(subtyp)))
@@ -50,3 +50,10 @@ FROM (SELECT rideid, startpoint, endpoint, starttime, endtime,
       LIMIT 20000
       ) AS "testdata";
 ```
+## Installatie en opzetten MongoDB
+### Installatie MongoDB
+Bij het installeren van MongoDB op het systeem, werd de default instelling "Install MongoDB as a Service" volgens de opgave uitgevinkt. Dit wil zeggen dat men de databank enkel via het CLI zal kunnen aanspreken.
+![img.png](img.png)
+
+### Opzetten databank met JSON file
+
