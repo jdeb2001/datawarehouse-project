@@ -1,4 +1,5 @@
 import psycopg2
+import pandas as pd
 
 db_config = {
     'dbname': 'datawarehouse',
@@ -49,6 +50,25 @@ def connect_to_db(config):
         return conn
     except Exception as e:
         print(f"Fout bij verbinden met database: {e}")
+
+# functie om CSV bestanden in te lezen, deze gaan we nodig hebben om onze clients uit VeloDB te importeren
+def insert_data_from_csv(conn, table_name, csv_file, columns):
+    try:
+        data = pd.read_csv(csv_file)
+
+        cursor = conn.cursor()
+
+        for _, row in data.iterrows():
+            placeholders = ', '.join(['%s'] * len(columns))
+            query = f"INSERT INTO {table_name} ({', '.join(columns)}) VALUES ({placeholders})"
+            cursor.execute(query, tuple(row[col] for col in columns))
+
+        conn.commit()
+        print(f"Insert data from {csv_file} complete")
+    except Exception as e:
+        print(f"Fout bij verbinden met database: {e}")
+        conn.rollback()
+
 
 def fill_table_dim_client(cursor_dwh, table_name='dim_client'):
     insert_query = f"""
