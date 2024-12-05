@@ -1,47 +1,45 @@
 import psycopg2
 import pandas as pd
 
-db_config = {
-    'dbname': 'datawarehouse',
+source_db_config = {
+    'dbname': 'velodb',
     'user': 'postgres',
-    'password': '123456',
+    'password': '<PASSWORD>',
     'host': 'localhost',
     'port': '5432',
 }
-# Klantdata (voorbeeldrecords)
-# dit moet opgehaald worden van de users CSV
-customers = [
-    {
-        'CustomerID': 1,
-        'Address': 'Main Street 123',
-        'City': 'Cityville',
-        'PostalCode': '12345',
-        'SubscriptionType': 'Premium',
-        'ValidFrom': '2024-01-01',
-        'ValidTo': None,  # Huidige actieve rij
-        'IsActive': True
-    },
-    {
-        'CustomerID': 2,
-        'Address': 'Second Avenue 456',
-        'City': 'Townsville',
-        'PostalCode': '67890',
-        'SubscriptionType': 'Basic',
-        'ValidFrom': '2024-01-01',
-        'ValidTo': '2024-06-01',
-        'IsActive': False
-    },
-    {
-        'CustomerID': 2,
-        'Address': 'Third Street 789',
-        'City': 'Newtown',
-        'PostalCode': '67891',
-        'SubscriptionType': 'Premium',
-        'ValidFrom': '2024-06-02',
-        'ValidTo': None,
-        'IsActive': True
-    }
-]
+
+target_db_config = {
+    'dbname': 'dwh_bike_analytics',
+    'user': 'postgres',
+    'password': '<PASSWORD>',
+    'host': 'localhost',
+    'port': '5432',
+}
+
+def transfer_users_to_dim_client(source_conn, target_conn):
+    try:
+        source_cursor = source_conn.cursor()
+        source_cursor.execute("SELECT userid, street || ' ' || number AS address, zipcode, city FROM velo_users")
+        users_data = source_cursor.fetchall()
+
+        target_cursor = target_conn.cursor()
+
+        insert_query = """
+            INSERT INTO dim_client (
+                CustomerID, Address, City, PostalCode, SubscriptionType, ValidFrom, ValidTo, IsActive
+            )
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+        """
+        for user in users_data:
+            userid, address, zipcode, city = user
+            target_cursor.execute(insert_query, (userid, address, zipcode, city, 'Basic', '2019-09-21', None, False))
+
+        target_conn.commit()
+        print("Successfully inserted users in DIM_CLIENT")
+    except Exception as e:
+        print(f"Error with transferring data: {e}")
+        target_conn.rollback()
 
 def connect_to_db(config):
     try:
@@ -70,50 +68,44 @@ def insert_data_from_csv(conn, table_name, csv_file, columns):
         conn.rollback()
 
 
-def fill_table_dim_client(cursor_dwh, table_name='dim_client'):
-    insert_query = f"""
-    INSERT INTO {table_name} (
-     CustomerID, Address, City, PostalCode, SubscriptionType, ValidFrom, ValidTo, IsActive
-    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
-    """
-
-    for customer in customers:
-        try:
-            cursor_dwh.execute(insert_query, (
-                customer['CustomerID'],
-                customer['Address'],
-                customer['City'],
-                customer['PostalCode'],
-                customer['SubscriptionType'],
-                customer['ValidFrom'],
-                customer['ValidTo'],
-                customer['IsActive']
-            ))
-            print(f"Klant {customer['CustomerID']} is inserted successfully")
-        except Exception as e:
-            print(f"Error adding client: {e}")
+# def fill_table_dim_client(cursor_dwh, table_name='dim_client'):
+#     insert_query = f"""
+#     INSERT INTO {table_name} (
+#      CustomerID, Address, City, PostalCode, SubscriptionType, ValidFrom, ValidTo, IsActive
+#     ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s);
+#     """
+#
+#     for customer in customers:
+#         try:
+#             cursor_dwh.execute(insert_query, (
+#                 customer['CustomerID'],
+#                 customer['Address'],
+#                 customer['City'],
+#                 customer['PostalCode'],
+#                 customer['SubscriptionType'],
+#                 customer['ValidFrom'],
+#                 customer['ValidTo'],
+#                 customer['IsActive']
+#             ))
+#             print(f"Klant {customer['CustomerID']} is inserted successfully")
+#         except Exception as e:
+#             print(f"Error adding client: {e}")
 
 
 def main():
-    conn = connect_to_db(db_config)
-    if conn is None:
+    source_conn = connect_to_db(source_db_config)
+    target_conn = connect_to_db(target_db_config)
+
+    if not source_conn or not target_conn:
         return
 
     try:
-        cursor_dwh = conn.cursor()
-
-        fill_table_dim_client(cursor_dwh)
-
-        conn.commit()
-        print("All changes saved successfully")
-
-    except Exception as e:
-        print(f"Error during operating: {e}")
-        conn.rollback()
+        transfer_users_to_dim_client(source_conn, target_conn)
     finally:
-        if conn:
-            cursor_dwh.close()
-            conn.close()
-            print("Closed connection to database.")
+        if source_conn:
+            source_conn.close()
+        if target_conn:
+            target_conn.close()
+        print("Closed connections")
 
 main()
