@@ -47,7 +47,7 @@ def connect_to_db(config):
         print("Connection to database established")
         return conn
     except Exception as e:
-        print(f"Fout bij verbinden met database: {e}")
+        print(f"Error establishing connection to database: {e}")
 
 # functie om CSV bestanden in te lezen, deze gaan we nodig hebben om onze clients uit VeloDB te importeren
 def insert_data_from_csv(conn, table_name, csv_file, columns):
@@ -64,7 +64,7 @@ def insert_data_from_csv(conn, table_name, csv_file, columns):
         conn.commit()
         print(f"Insert data from {csv_file} complete")
     except Exception as e:
-        print(f"Fout bij verbinden met database: {e}")
+        print(f"Error establishing connection to database: {e}")
         conn.rollback()
 
 
