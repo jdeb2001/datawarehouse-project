@@ -1,3 +1,6 @@
+# dit is een script om alle data die in de veloDB databank zit over te zetten naar onze eigen data warehouse databank, zodat we hiermee op onze manier aan de slag kunnen
+from datetime import datetime
+
 import psycopg2
 # vergeet niet om wachtwoord te veranderen met eigen wachtwoord!
 source_db_config = {
@@ -18,21 +21,52 @@ target_db_config = {
 
 def transfer_users_to_dim_client(source_conn, target_conn):
     try:
+        # EXTRACTIE VAN DATA
+        print("Starting Data Extraction")
         source_cursor = source_conn.cursor()
         source_cursor.execute("SELECT userid, name, email, street, number, city, postal_code, country_code FROM velo_users")
         users_data = source_cursor.fetchall()
 
-        target_cursor = target_conn.cursor()
+        # TRANSFORMATIE VAN DATA
+        # checken of dim_client al bestaat etc
+        print("Starting Data Transformation")
+        transformed_data = []
+        for user in users_data:
+            userid, name, email, street, number, city, postal_code, country_code = user
 
+            name = name.strip().title() if name else "Unknown"
+            email = email.lower() if email else "unknown@example.com"
+            street = street.strip().title() if street else "Unknown"
+            number = number.strip() if number else "Unknown"
+            city = city.strip().title() if city else "Unknown"
+            postal_code = postal_code.strip() if postal_code else "0000"
+            country_code = country_code.strip() if country_code else "N/A"
+
+            valid_from = datetime.now().strftime("%Y-%m-%d")
+            valid_to = None
+            is_active = True
+
+            if not userid:
+                print("Skipping records with missing User IDs")
+                continue
+
+            transformed_data.append({userid, name, email, street, number, city, postal_code, country_code, valid_from, valid_to, is_active})
+        print(f"Transformed {len(transformed_data)} records")
+
+
+        # LOADING
+        target_cursor = target_conn.cursor()
         insert_query = """
             INSERT INTO dim_client (
                 clientID, name, email, street, number, city, postal_code, country_code, validFrom, validTo, isActive
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
-        for user in users_data:
-            userid, name, email, street, number, city, postal_code, country_code = user
-            target_cursor.execute(insert_query, (userid, name, email, street, number, city, postal_code, country_code, '2019-09-21', None, False))
+        for record in transformed_data:
+            target_cursor.execute(insert_query, record)
+        # for user in users_data:
+        #     # userid, name, email, street, number, city, postal_code, country_code = user
+        #     target_cursor.execute(insert_query, (userid, name, email, street, number, city, postal_code, country_code, '2019-09-21', None, False))
 
         target_conn.commit()
         print("Successfully inserted users in dim_client")
