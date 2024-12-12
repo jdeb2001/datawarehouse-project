@@ -22,14 +22,14 @@ target_db_config = {
 def transfer_users_to_dim_client(source_conn, target_conn):
     try:
         # EXTRACTIE VAN DATA
-        print("Starting Data Extraction")
+        print("Starting data extraction...")
         source_cursor = source_conn.cursor()
         source_cursor.execute("SELECT userid, name, email, street, number, city, postal_code, country_code FROM velo_users")
         users_data = source_cursor.fetchall()
 
         # TRANSFORMATIE VAN DATA
         # checken of dim_client al bestaat etc
-        print("Starting Data Transformation")
+        print("Starting data transformation...")
         transformed_data = []
         for user in users_data:
             userid, name, email, street, number, city, postal_code, country_code = user
@@ -55,9 +55,10 @@ def transfer_users_to_dim_client(source_conn, target_conn):
 
 
         # LOADING
+        print("Starting data loading...")
         target_cursor = target_conn.cursor()
         insert_query = """
-            INSERT INTO dim_client (
+            INSERT INTO dim_clients (
                 clientID, name, email, street, number, city, postal_code, country_code, validFrom, validTo, isActive
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)

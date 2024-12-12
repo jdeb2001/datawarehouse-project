@@ -45,7 +45,7 @@ def transfer_locks_to_dim_lock(source_conn, target_conn):
         target_cursor = target_conn.cursor()
 
         insert_query = """
-            INSERT INTO dim_lock (
+            INSERT INTO dim_locks (
                 lockID, stationLockNr, stationAddress, zipCode, district, GPSCoord, stationType, isStep
             )
             VALUES (%s, %s, %s, %s, %s, %s, %s, %s)

@@ -57,7 +57,7 @@ def populate_fact_ride(source_conn, target_conn):
 
             # Haal DATE_SK op uit DIM_DATE
             target_cursor.execute("""
-                SELECT DATE_SK FROM DIM_DATE WHERE Date = %s
+                SELECT date_sk FROM dim_date WHERE Date = %s
             """, (starttime.date(),))
             date_result = target_cursor.fetchone()
             if date_result:
@@ -66,10 +66,9 @@ def populate_fact_ride(source_conn, target_conn):
                 print(f"Datum {starttime.date()} niet gevonden in DIM_DATE.")
                 continue
 
-            # Haal WEATHER_SK op (hier gebruik ik 'Onbekend')
-            # TODO: aanpassen naarmate requirements opgesteld door S1
+            # Haal weather_sk op (hier gebruik ik 'Onbekend')
             target_cursor.execute("""
-                SELECT WEATHER_SK FROM DIM_WEATHER WHERE WeatherType = 'Onbekend'
+                SELECT weather_sk FROM DIM_WEATHER WHERE WeatherType = 'Onbekend'
             """)
             weather_sk = target_cursor.fetchone()[0]
 
@@ -85,7 +84,7 @@ def populate_fact_ride(source_conn, target_conn):
                 continue
 
             target_cursor.execute("""
-                SELECT CUSTOMER_SK FROM DIM_CUSTOMER WHERE CustomerID = %s AND IsActive = TRUE
+                SELECT client_sk FROM dim_clients WHERE clientID = %s AND isActive = TRUE
             """, (userid,))
             customer_result = target_cursor.fetchone()
             if customer_result:
@@ -97,7 +96,7 @@ def populate_fact_ride(source_conn, target_conn):
             # Haal START_LOCK_SK op uit DIM_LOCK
             if startlockid is not None:
                 target_cursor.execute("""
-                    SELECT LOCK_SK FROM DIM_LOCK WHERE LockID = %s
+                    SELECT lock_sk FROM dim_locks WHERE lockID = %s
                 """, (startlockid,))
                 start_lock_result = target_cursor.fetchone()
                 if start_lock_result:
@@ -106,16 +105,16 @@ def populate_fact_ride(source_conn, target_conn):
                     print(f"Start LockID {startlockid} niet gevonden in DIM_LOCK.")
                     continue
             else:
-                # Gebruik "Geen slot"
+                # TODO: dit moet gedaan worden door te kijken of de locks op 0 staan
                 target_cursor.execute("""
-                    SELECT LOCK_SK FROM DIM_LOCK WHERE IsStep = TRUE
+                    SELECT lock_sk FROM DIM_LOCK WHERE IsStep = TRUE
                 """)
                 start_lock_sk = target_cursor.fetchone()[0]
 
             # Haal END_LOCK_SK op uit DIM_LOCK
             if endlockid is not None:
                 target_cursor.execute("""
-                    SELECT LOCK_SK FROM DIM_LOCK WHERE LockID = %s
+                    SELECT lock_sk FROM dim_locks WHERE lockID = %s
                 """, (endlockid,))
                 end_lock_result = target_cursor.fetchone()
                 if end_lock_result:
@@ -125,8 +124,9 @@ def populate_fact_ride(source_conn, target_conn):
                     continue
             else:
                 # Gebruik "Geen slot"
+                # TODO: verander naar locks op 0
                 target_cursor.execute("""
-                    SELECT LOCK_SK FROM DIM_LOCK WHERE IsStep = TRUE
+                    SELECT lock_sk FROM dim_lock WHERE IsStep = TRUE
                 """)
                 end_lock_sk = target_cursor.fetchone()[0]
 
@@ -135,8 +135,8 @@ def populate_fact_ride(source_conn, target_conn):
 
             # Voeg record in FACT_RIDE in
             insert_query = """
-                INSERT INTO FACT_RIDE (
-                    DATE_SK, WEATHER_SK, CUSTOMER_SK, START_LOCK_SK, END_LOCK_SK, Duration, Distance
+                INSERT INTO fact_rides (
+                    date_sk, weather_sk, customer_sk, start_lock_sk, end_lock_sk, duration, distance
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
             target_cursor.execute(insert_query, (
