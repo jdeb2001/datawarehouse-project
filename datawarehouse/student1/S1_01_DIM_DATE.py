@@ -3,23 +3,6 @@ import pandas as pd
 import dwh_tools as dwh
 from config import SERVER, DATABASE_VELO, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
-# Databaseconfiguratie
-source_db_config = {
-    'dbname': 'velo_db',
-    'user': 'postgres',
-    'password': 'Student_1234',
-    'host': 'localhost',
-    'port': 5432
-}
-
-target_db_config = {
-    'dbname': '??????????????????????????????????',
-    'user': 'postgres',
-    'password': 'Student_1234',
-    'host': 'localhost',
-    'port': 5432
-}
-
 
 def fetch_min_order_date(cursor_velo):
     """

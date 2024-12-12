@@ -1,6 +1,20 @@
+DROP TABLE IF EXISTS dim_date;
 DROP TABLE IF EXISTS dim_client;
 DROP TABLE IF EXISTS dim_lock;
 DROP TABLE IF EXISTS fact_ride;
+
+CREATE TABLE dim_date(
+    date_SK SERIAL PRIMARY KEY,
+    date DATE,
+    day_of_month SMALLINT NOT NULL,
+    month SMALLINT NOT NULL,
+    year SMALLINT NOT NULL,
+    day_of_week SMALLINT NOT NULL,
+    day_of_year SMALLINT NOT NULL,
+    weekday VARCHAR(10),
+    month_name VARCHAR(15),
+    quarter SMALLINT NOT NULL
+);
 
 CREATE TABLE dim_client (
     client_sk SERIAL PRIMARY KEY,
