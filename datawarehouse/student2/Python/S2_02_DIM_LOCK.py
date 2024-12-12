@@ -1,5 +1,5 @@
 import psycopg2
-
+# vergeet niet om wachtwoord te veranderen met eigen wachtwoord!
 source_db_config = {
     'dbname': 'velodb',
     'user': 'postgres',
