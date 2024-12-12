@@ -82,12 +82,13 @@ mongod --shardsvr --replSet C --dbpath shardC1 --port 27025 --logpath shardC1\sh
 Ter illustratie:
 (FOTO)
 
-### Verbinding Mongos
+### Verbinding Mongos-Cluster
 ```commandline
 mongos --configdb cfg/localhost:27017,localhost:27018,localhost:27019 --bind_ip localhost --port 27100
 ```
 
 ### Configuratie MongoDB Shell
+Mongos via MongoDB Shell
 ```commandline
 mongosh --port 27100
 ```
