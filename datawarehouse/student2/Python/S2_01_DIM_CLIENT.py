@@ -19,23 +19,23 @@ target_db_config = {
 def transfer_users_to_dim_client(source_conn, target_conn):
     try:
         source_cursor = source_conn.cursor()
-        source_cursor.execute("SELECT userid, street || ' ' || number AS address, zipcode, city FROM velo_users")
+        source_cursor.execute("SELECT userid, name, email, street, number, city, postal_code, country_code FROM velo_users")
         users_data = source_cursor.fetchall()
 
         target_cursor = target_conn.cursor()
 
         insert_query = """
             INSERT INTO dim_client (
-                CustomerID, Address, City, PostalCode, SubscriptionType, ValidFrom, ValidTo, IsActive
+                clientID, name, email, street, number, city, postal_code, country_code, validFrom, validTo, isActive
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
         """
         for user in users_data:
-            userid, address, zipcode, city = user
-            target_cursor.execute(insert_query, (userid, address, zipcode, city, 'Basic', '2019-09-21', None, False))
+            userid, name, email, street, number, city, postal_code, country_code = user
+            target_cursor.execute(insert_query, (userid, name, email, street, number, city, postal_code, country_code, '2019-09-21', None, False))
 
         target_conn.commit()
-        print("Successfully inserted users in DIM_CLIENT")
+        print("Successfully inserted users in dim_client")
     except Exception as e:
         print(f"Error with transferring data: {e}")
         target_conn.rollback()
