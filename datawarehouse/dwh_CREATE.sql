@@ -3,7 +3,7 @@ DROP TABLE IF EXISTS dim_client;
 DROP TABLE IF EXISTS dim_lock;
 DROP TABLE IF EXISTS fact_ride;
 
-CREATE TABLE dim_date(
+CREATE TABLE dim_dates (
     date_SK SERIAL PRIMARY KEY,
     date DATE,
     day_of_month SMALLINT NOT NULL,
@@ -16,7 +16,7 @@ CREATE TABLE dim_date(
     quarter SMALLINT NOT NULL
 );
 
-CREATE TABLE dim_client (
+CREATE TABLE dim_clients (
     client_sk SERIAL PRIMARY KEY,
     clientID INTEGER NOT NULL,
     name VARCHAR(100),
@@ -33,7 +33,7 @@ CREATE TABLE dim_client (
 );
 
 --TOOD: steppen moeten aangeduid word door lock id 0
-CREATE TABLE dim_lock (
+CREATE TABLE dim_locks (
     lock_sk SERIAL PRIMARY KEY,         -- Surrogaatsleutel
     lockID INTEGER,                     -- Originele slot-ID
     stationLockNr INTEGER,              -- Slotnummer binnen het station
@@ -45,8 +45,7 @@ CREATE TABLE dim_lock (
 );
 
 --andere dimensies moeten nog aangemaakt worden om dit in orde te krijgen!
-CREATE TABLE fact_ride
-(
+CREATE TABLE fact_rides (
     ride_sk       SERIAL PRIMARY KEY, -- Surrogaatsleutel
     date_sk       INTEGER  NOT NULL,  -- Verwijzing naar DIM_DATE
     weather_sk    INTEGER  NOT NULL,  -- Verwijzing naar DIM_WEATHER
@@ -54,10 +53,25 @@ CREATE TABLE fact_ride
     start_lock_sk INTEGER  NOT NULL,  -- Verwijzing naar DIM_LOCK (startslot)
     end_lock_sk   INTEGER  NOT NULL,  -- Verwijzing naar DIM_LOCK (eindslot)
     duration      INTERVAL NOT NULL,  -- Duur van de rit
-    distance      DECIMAL(10, 2),     -- Afstand van de rit in kilometer
-    FOREIGN KEY (DATE_SK) REFERENCES DIM_DATE (DATE_SK),
-    FOREIGN KEY (WEATHER_SK) REFERENCES DIM_WEATHER (WEATHER_SK),
-    FOREIGN KEY (client_sk) REFERENCES dim_client (client_sk),
-    FOREIGN KEY (start_lock_sk) REFERENCES dim_lock (lock_sk),
-    FOREIGN KEY (end_lock_sk) REFERENCES dim_lock (lock_sk)
+    distance      DECIMAL(10, 2)     -- Afstand van de rit in kilometer
 );
+
+ALTER TABLE fact_rides
+    ADD CONSTRAINT fact_rides_dim_date_fk FOREIGN KEY (date_sk)
+        REFERENCES dim_date (date_sk);
+
+ALTER TABLE fact_rides
+    ADD CONSTRAINT fact_rides_dim_weather_fk FOREIGN KEY (weather_sk)
+        REFERENCES dim_weather (weather_sk);
+
+ALTER TABLE fact_rides
+    ADD CONSTRAINT fact_rides_dim_startlock_fk FOREIGN KEY (start_lock_sk)
+        REFERENCES dim_locks (lock_sk);
+
+ALTER TABLE fact_rides
+    ADD CONSTRAINT fact_rides_dim_endlock_fk FOREIGN KEY (end_lock_sk)
+        REFERENCES dim_locks (lock_sk);
+
+ALTER TABLE fact_rides
+    ADD CONSTRAINT fact_rides_dim_client FOREIGN KEY (client_sk)
+        REFERENCES dim_clients (client_sk);
