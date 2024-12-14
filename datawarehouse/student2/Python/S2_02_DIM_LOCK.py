@@ -26,6 +26,8 @@ def connect_to_db(config):
 
 def transfer_locks_to_dim_lock(source_conn, target_conn):
     try:
+        # EXTRACT
+        print("Starting data extraction...")
         source_cursor = source_conn.cursor()
         source_query = """
             SELECT 
@@ -42,13 +44,20 @@ def transfer_locks_to_dim_lock(source_conn, target_conn):
         source_cursor.execute(source_query)
         locks_data = source_cursor.fetchall()
 
+        # TRANSFORM
+        # TODO: transform dim_lock
+        print("Starting data transformation...")
+
+
+        # LOADING
+        print("Starting data loading...")
         target_cursor = target_conn.cursor()
 
         insert_query = """
             INSERT INTO dim_locks (
-                lockID, stationLockNr, stationAddress, zipCode, district, GPSCoord, stationType, isStep
+                lockID, stationLockNr, stationAddress, zipCode, district, GPSCoord, stationType
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES (%s, %s, %s, %s, %s, %s, %s)
         """
         for lock in locks_data:
             target_cursor.execute(insert_query, (
@@ -64,16 +73,17 @@ def transfer_locks_to_dim_lock(source_conn, target_conn):
 
 
         # extra record voor geen slot
-        target_cursor.execute(insert_query, (
-            None,
-            None,
-            'Geen locatie',
-            None,
-            None,
-            None,
-            None,
-            True # true voor ritten zonder slot
-        ))
+        # dit hoeft volgens mij niet meer
+        # target_cursor.execute(insert_query, (
+        #     None,
+        #     None,
+        #     'Geen locatie',
+        #     None,
+        #     None,
+        #     None,
+        #     None,
+        #     True # true voor ritten zonder slot
+        # ))
 
         # wijzigingen opslaan
         target_conn.commit()

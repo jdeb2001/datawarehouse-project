@@ -1,6 +1,5 @@
-# TODO: volgorde van scripts kan nog veranderen, dit zeker in het oog houden in filenaam
-# vergeet niet zelf om het juiste wachtwoord voor jouw eigen postgres bank in te geven!
 import psycopg2
+from datetime import datetime
 
 # Databaseconfiguratie
 source_db_config = {
@@ -66,9 +65,9 @@ def populate_fact_ride(source_conn, target_conn):
                 print(f"Datum {starttime.date()} niet gevonden in DIM_DATE.")
                 continue
 
-            # Haal weather_sk op (hier gebruik ik 'Onbekend')
+            # Haal WEATHER_SK op (hier gebruik ik 'Onbekend')
             target_cursor.execute("""
-                SELECT weather_sk FROM DIM_WEATHER WHERE WeatherType = 'Onbekend'
+                SELECT weather_sk FROM dim_weather WHERE WeatherType = 'Onbekend'
             """)
             weather_sk = target_cursor.fetchone()[0]
 
@@ -93,10 +92,16 @@ def populate_fact_ride(source_conn, target_conn):
                 print(f"CustomerID {userid} niet gevonden in DIM_CUSTOMER.")
                 continue
 
-            # Haal START_LOCK_SK op uit DIM_LOCK
-            if startlockid is not None:
+            # Controleer of de rit een step betreft (geen slot of slot-ID = 0)
+            if startlockid is None or startlockid == 0:
                 target_cursor.execute("""
-                    SELECT lock_sk FROM dim_locks WHERE lockID = %s
+                    SELECT lock_sk FROM dim_lock WHERE IsStep = TRUE
+                """)
+                start_lock_sk = target_cursor.fetchone()[0]
+            else:
+                # Haal START_LOCK_SK op uit DIM_LOCK
+                target_cursor.execute("""
+                    SELECT lock_sk FROM dim_lock WHERE lockID = %s
                 """, (startlockid,))
                 start_lock_result = target_cursor.fetchone()
                 if start_lock_result:
@@ -104,17 +109,17 @@ def populate_fact_ride(source_conn, target_conn):
                 else:
                     print(f"Start LockID {startlockid} niet gevonden in DIM_LOCK.")
                     continue
-            else:
-                # TODO: dit moet gedaan worden door te kijken of de locks op 0 staan
-                target_cursor.execute("""
-                    SELECT lock_sk FROM DIM_LOCK WHERE IsStep = TRUE
-                """)
-                start_lock_sk = target_cursor.fetchone()[0]
 
-            # Haal END_LOCK_SK op uit DIM_LOCK
-            if endlockid is not None:
+            # Controleer of de rit een step betreft (geen slot of slot-ID = 0)
+            if endlockid is None or endlockid == 0:
                 target_cursor.execute("""
-                    SELECT lock_sk FROM dim_locks WHERE lockID = %s
+                    SELECT lock_sk FROM dim_lock WHERE IsStep = TRUE
+                """)
+                end_lock_sk = target_cursor.fetchone()[0]
+            else:
+                # Haal END_LOCK_SK op uit DIM_LOCK
+                target_cursor.execute("""
+                    SELECT lock_sk FROM dim_lock WHERE lockID = %s
                 """, (endlockid,))
                 end_lock_result = target_cursor.fetchone()
                 if end_lock_result:
@@ -122,20 +127,13 @@ def populate_fact_ride(source_conn, target_conn):
                 else:
                     print(f"End LockID {endlockid} niet gevonden in DIM_LOCK.")
                     continue
-            else:
-                # Gebruik "Geen slot"
-                # TODO: verander naar locks op 0
-                target_cursor.execute("""
-                    SELECT lock_sk FROM dim_lock WHERE IsStep = TRUE
-                """)
-                end_lock_sk = target_cursor.fetchone()[0]
 
             # Afstand is optioneel; zet op NULL of bereken indien mogelijk
             distance = None
 
             # Voeg record in FACT_RIDE in
             insert_query = """
-                INSERT INTO fact_rides (
+                INSERT INTO fact_ride (
                     date_sk, weather_sk, customer_sk, start_lock_sk, end_lock_sk, duration, distance
                 ) VALUES (%s, %s, %s, %s, %s, %s, %s)
             """
