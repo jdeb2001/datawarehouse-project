@@ -7,7 +7,7 @@ from psycopg2.extras import execute_values
 source_db_config = {
     'dbname': 'velodb',
     'user': 'postgres',
-    'password': 'Goldyke001',
+    'password': '<PASSWORD>',
     'host': 'localhost',
     'port': '5432',
 }
@@ -15,7 +15,7 @@ source_db_config = {
 target_db_config = {
     'dbname': 'dwh_bike_analytics',
     'user': 'postgres',
-    'password': 'Goldyke001',
+    'password': '<PASSWORD>',
     'host': 'localhost',
     'port': '5432',
 }
@@ -48,11 +48,11 @@ def transfer_users_to_dim_client(source_conn, target_conn, batch_size=1000):
             is_active = True
 
             if not userid:
-                print("Skipping records with missing User IDs")
+                print("Skipping records with missing User IDs.")
                 continue
 
             transformed_data.append((userid, name, email, street, number, city, postal_code, country_code, valid_from, valid_to, is_active))
-        print(f"Transformed {len(transformed_data)} records")
+        print(f"Transformed {len(transformed_data)} records.")
 
 
         # LOADING
@@ -69,7 +69,7 @@ def transfer_users_to_dim_client(source_conn, target_conn, batch_size=1000):
         for i in range(0, len(transformed_data), batch_size):
             batch = transformed_data[i:i + batch_size]
             execute_values(target_cursor, insert_query, batch)
-            print(f"Batch {i}/{len(transformed_data)} loaded successfully")
+            print(f"Batch {i}/{len(transformed_data)} loaded successfully.")
 
 
         target_conn.commit()
