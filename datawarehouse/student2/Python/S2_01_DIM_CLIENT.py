@@ -2,11 +2,12 @@
 from datetime import datetime
 
 import psycopg2
+from psycopg2.extras import execute_values
 # vergeet niet om wachtwoord te veranderen met eigen wachtwoord!
 source_db_config = {
     'dbname': 'velodb',
     'user': 'postgres',
-    'password': '<PASSWORD>',
+    'password': 'Goldyke001',
     'host': 'localhost',
     'port': '5432',
 }
@@ -14,17 +15,17 @@ source_db_config = {
 target_db_config = {
     'dbname': 'dwh_bike_analytics',
     'user': 'postgres',
-    'password': '<PASSWORD>',
+    'password': 'Goldyke001',
     'host': 'localhost',
     'port': '5432',
 }
 
-def transfer_users_to_dim_client(source_conn, target_conn):
+def transfer_users_to_dim_client(source_conn, target_conn, batch_size=1000):
     try:
         # EXTRACTIE VAN DATA
         print("Starting data extraction...")
         source_cursor = source_conn.cursor()
-        source_cursor.execute("SELECT userid, name, email, street, number, city, postal_code, country_code FROM velo_users")
+        source_cursor.execute("SELECT userid, name, email, street, number, city, zipcode, country_code FROM velo_users")
         users_data = source_cursor.fetchall()
 
         # TRANSFORMATIE VAN DATA
@@ -50,7 +51,7 @@ def transfer_users_to_dim_client(source_conn, target_conn):
                 print("Skipping records with missing User IDs")
                 continue
 
-            transformed_data.append({userid, name, email, street, number, city, postal_code, country_code, valid_from, valid_to, is_active})
+            transformed_data.append((userid, name, email, street, number, city, postal_code, country_code, valid_from, valid_to, is_active))
         print(f"Transformed {len(transformed_data)} records")
 
 
@@ -61,18 +62,20 @@ def transfer_users_to_dim_client(source_conn, target_conn):
             INSERT INTO dim_clients (
                 clientID, name, email, street, number, city, postal_code, country_code, validFrom, validTo, isActive
             )
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES %s
         """
-        for record in transformed_data:
-            target_cursor.execute(insert_query, record)
-        # for user in users_data:
-        #     # userid, name, email, street, number, city, postal_code, country_code = user
-        #     target_cursor.execute(insert_query, (userid, name, email, street, number, city, postal_code, country_code, '2019-09-21', None, False))
+
+        # batch loading met execute_values uit psycopg2
+        for i in range(0, len(transformed_data), batch_size):
+            batch = transformed_data[i:i + batch_size]
+            execute_values(target_cursor, insert_query, batch)
+            print(f"Batch {i}/{len(transformed_data)} loaded successfully")
+
 
         target_conn.commit()
         print("Successfully inserted users in dim_client")
     except Exception as e:
-        print(f"Error with transferring data: {e}")
+        print(f"Error with inserting data: {e}")
         target_conn.rollback()
 
 def connect_to_db(config):
