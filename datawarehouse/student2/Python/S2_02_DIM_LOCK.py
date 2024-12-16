@@ -27,7 +27,7 @@ def connect_to_db(config):
 
 def transfer_locks_to_dim_lock(source_conn, target_conn, batch_size=1000):
     try:
-        # EXTRACT
+        # === EXTRACT ===
         print("Starting data extraction...")
         source_cursor = source_conn.cursor()
         source_query = """
@@ -45,7 +45,7 @@ def transfer_locks_to_dim_lock(source_conn, target_conn, batch_size=1000):
         source_cursor.execute(source_query)
         locks_data = source_cursor.fetchall()
 
-        # TRANSFORM
+        # === TRANSFORM ===
         print("Starting data transformation...")
         print("Start data-transformatie...")
         transformed_data = []
@@ -81,7 +81,7 @@ def transfer_locks_to_dim_lock(source_conn, target_conn, batch_size=1000):
 
         print(f"Transformed {len(transformed_data)} records.")
 
-        # LOADING
+        # === LOADING ===
         print("Starting data loading...")
         # hier en in andere scripts moeten we gebruik maken van batch-inserts om de performantie van data inladen te verhogen
         # dit is zeker nodig als we met gigantische hoeveelheden data gaan werken, wat zeker het geval gaat zijn bij het feit en de dimensie client ook
