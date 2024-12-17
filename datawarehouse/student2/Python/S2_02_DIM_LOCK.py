@@ -1,4 +1,5 @@
 import psycopg2
+from psycopg2.extras import execute_values
 # vergeet niet om wachtwoord te veranderen met eigen wachtwoord!
 source_db_config = {
     'dbname': 'velodb',
@@ -24,9 +25,9 @@ def connect_to_db(config):
     except Exception as e:
         print(f"Unable to connect to database: {e}")
 
-def transfer_locks_to_dim_lock(source_conn, target_conn):
+def transfer_locks_to_dim_lock(source_conn, target_conn, batch_size=1000):
     try:
-        # EXTRACT
+        # === EXTRACT ===
         print("Starting data extraction...")
         source_cursor = source_conn.cursor()
         source_query = """
@@ -44,46 +45,67 @@ def transfer_locks_to_dim_lock(source_conn, target_conn):
         source_cursor.execute(source_query)
         locks_data = source_cursor.fetchall()
 
-        # TRANSFORM
-        # TODO: transform dim_lock
+        # === TRANSFORM ===
         print("Starting data transformation...")
+        print("Start data-transformatie...")
+        transformed_data = []
+        unique_lock_ids = set()
 
+        for lock in locks_data:
+            lockid, stationlocknr, station_address, zipcode, district, gpscoord, station_type = lock
 
-        # LOADING
+            # Standaardiseer waarden
+            station_address = station_address.strip().title() if station_address else "Onbekend"
+            zipcode = zipcode.strip() if zipcode else "0000"
+            district = district.strip().title() if district else "Onbekend"
+            station_type = station_type.strip().title() if station_type else "Onbekend"
+
+            # Vervang missende waarden
+            gpscoord = gpscoord if gpscoord else '(0,0)'
+
+            # Controleer op duplicaten
+            if lockid in unique_lock_ids:
+                continue
+            unique_lock_ids.add(lockid)
+
+            # Voeg getransformeerde data toe
+            transformed_data.append((
+                lockid, stationlocknr, station_address, zipcode, district, gpscoord, station_type
+            ))
+
+        # Voeg extra record toe voor "Geen slot"
+        # geen idee of dit eigenlijk nog steeds moet of niet?
+        transformed_data.append((
+            None, None, "Geen locatie", "0000", "Onbekend", "(0,0)", "Geen Slot"
+        ))
+
+        print(f"Transformed {len(transformed_data)} records.")
+
+        # === LOADING ===
         print("Starting data loading...")
+        # hier en in andere scripts moeten we gebruik maken van batch-inserts om de performantie van data inladen te verhogen
+        # dit is zeker nodig als we met gigantische hoeveelheden data gaan werken, wat zeker het geval gaat zijn bij het feit en de dimensie client ook
+        target_cursor = target_conn.cursor()
+
+        print("Start data-loading met batch-inserts...")
         target_cursor = target_conn.cursor()
 
         insert_query = """
-            INSERT INTO dim_locks (
-                lockID, stationLockNr, stationAddress, zipCode, district, GPSCoord, stationType
-            )
-            VALUES (%s, %s, %s, %s, %s, %s, %s)
-        """
-        for lock in locks_data:
-            target_cursor.execute(insert_query, (
-                lock[0],
-                lock[1],
-                lock[2],
-                lock[3],
-                lock[4],
-                lock[5],
-                lock[6],
-                False
-            ))
+                    INSERT INTO dim_locks (
+                        lockID, stationLockNr, stationAddress, stationZipCode, stationDistrict, stationCoordinations, stationType
+                    ) VALUES %s
+                """
 
+        # Batch-inserts uitvoeren
+        for i in range(0, len(transformed_data), batch_size):
+            batch = transformed_data[i:i + batch_size]
+            execute_values(target_cursor, insert_query, batch)
+            print(f"Loading batch {i // batch_size + 1}...")
 
-        # extra record voor geen slot
-        # dit hoeft volgens mij niet meer
-        # target_cursor.execute(insert_query, (
-        #     None,
-        #     None,
-        #     'Geen locatie',
-        #     None,
-        #     None,
-        #     None,
-        #     None,
-        #     True # true voor ritten zonder slot
-        # ))
+        # Wijzigingen opslaan
+        target_conn.commit()
+        print("Data succesvol geladen in dim_locks.")
+
 
         # wijzigingen opslaan
         target_conn.commit()
