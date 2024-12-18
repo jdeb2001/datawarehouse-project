@@ -1,5 +1,5 @@
 # Project VeloDB Neo4J
-Bij dit project hoort nog een apart Word document met iets diepgaandere documentatie van wat ik hier gedaan heb. In deze markdown kan u de basis vinden van wat ik exact gedaan heb op dit moment.
+Bij dit project hoort nog een apart Word document met iets diepgaandere documentatie van wat ik hier gedaan heb. In deze markdown staan enkel de scripts die ik heb uitgevoerd om tot mijn resultaten te komen, dus is het beter om de documentatie zelf te bekijken voor uitgebreidere informatie.
 ## Startdata
 Eerst importeren we onze datasets die we uit onze Postgres databank gehaald hebben. In mijn geval heb ik dit met 5 aparte .csv bestanden gedaan voor Stations, Rides, Locks, Vehicles en Users.
 
@@ -114,13 +114,28 @@ ORDER BY RideCount DESC
 LIMIT 10;
 ```
 
-### TODO: Eigen query: hoe kan je het kortste pad vinden tussen verschillende stations?
+### Eigen query: vind de voertuigen die het langste stilstaan in een bepaald station na hun laatste rit
 ```cypher
-MATCH (startStation:Station), (endStation:Station)
-WHERE startStation <> endStation
-WITH startStation, endStation
-MATCH p = shortestPath((startStation)-[:STARTS_AT|ENDS_AT*]-(endStation))
-RETURN startStation.id AS StartStation, endStation.id AS EndStation, length(p) AS PathLength
-ORDER BY PathLength ASC
+// Vind de laatste rit van elk voertuig
+MATCH (r:Ride)-[:ENDS_AT]->(lEnd:Lock)-[:LOCATED_IN]->(sEnd:Station),
+(r)-[:USES]->(v:Vehicle)
+WITH v.vehicleId AS VehicleID, 
+MAX(r.endTime) AS LastRideTime, 
+sEnd.stationId AS LastStation
+
+// Controleer of het voertuig geen nieuwe rit gestart heeft sinds de laatste rit
+OPTIONAL MATCH (v)<-[:USES]-(newRide:Ride)-[:STARTS_AT]->(lStart:Lock)
+WHERE newRide.startTime > LastRideTime
+WITH VehicleID, LastRideTime, LastStation, COUNT(newRide) AS NewRides
+WHERE NewRides = 0 // Alleen voertuigen zonder nieuwe ritten
+
+// Bereken hoe lang het voertuig stilstaat en formatteer de IdleTime
+WITH VehicleID, LastStation, duration.between(LastRideTime, datetime()) AS IdleTime
+RETURN VehicleID, 
+LastStation AS StationID,
+IdleTime.days AS DaysIdle, 
+IdleTime.hours AS HoursIdle, 
+IdleTime.minutes AS MinutesIdle
+ORDER BY DaysIdle DESC, HoursIdle DESC, MinutesIdle DESC
 LIMIT 10;
 ```
