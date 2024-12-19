@@ -93,6 +93,7 @@ def populate_fact_ride(source_conn, target_conn):
                 continue
 
             # Controleer of de rit een step betreft (geen slot of slot-ID = 0)
+            # TODO: dit nakijken aangezien isStep niet meer bestaat in onze dimensie
             if startlockid is None or startlockid == 0:
                 target_cursor.execute("""
                     SELECT lock_sk FROM dim_lock WHERE IsStep = TRUE
@@ -111,6 +112,7 @@ def populate_fact_ride(source_conn, target_conn):
                     continue
 
             # Controleer of de rit een step betreft (geen slot of slot-ID = 0)
+            # TODO: dit nakijken aangezien isStep niet meer bestaat in onze dimensie
             if endlockid is None or endlockid == 0:
                 target_cursor.execute("""
                     SELECT lock_sk FROM dim_lock WHERE IsStep = TRUE
