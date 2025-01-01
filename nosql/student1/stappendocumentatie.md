@@ -2,11 +2,14 @@
 Hieronder de stappen die genomen zijn voor het opzetten van de databank in MongoDB.
 
 ## Subset VeloDB exporteren naar JSON
-Testdata om mee te beginnen.
+Wegens beperkingen van PyCharm kon de gewenste data niet als één JSON file geëxporteerd worden. Bijgevolg werd het in 3 files verdeeld; dit omdat, a.d.h.v. testen, 3 files het minimum aantal nodig bleek te zijn. 
+De queries gebruikt zowel voor die test (op basis van datum) als om de werkelijke data te exporteren zijn terug te vinden in 'Data_export.sql' in de map 'SQL'. Om alles klaar te zetten en de werking van de databank te testen werd enkel het eerste deel gebruikt, en de andere twee werden daarna opgeladen.  
+\
+Deel 1 om mee te beginnen:
 
 ```SQL
 COPY (
-    SELECT JSON_AGG(ROW_TO_JSON(testdata))
+    SELECT JSON_AGG(ROW_TO_JSON(data_part_1))
     FROM (SELECT rideid,
                  startpoint,
                  endpoint,
@@ -33,10 +36,9 @@ COPY (
                         ) AS "v"
                   ) AS "vehicle_info" -- array met alle info over elk voertuig
           FROM rides AS "r"
-          WHERE DATE(starttime) BETWEEN TO_DATE('2019-09-22', 'YYYY-MM-DD') AND TO_DATE('2019-09-24', 'YYYY-MM-DD')
-          LIMIT 20000
-          ) AS "testdata"
-) TO 'C:\kdg\DB_2\Project_P2\output_json\testdata_1.json';
+           WHERE DATE(starttime) BETWEEN TO_DATE('2015-09-22', 'YYYY-MM-DD') AND TO_DATE('2019-09-22', 'YYYY-MM-DD')
+          ) AS "data_part_1"
+) TO 'C:\kdg\DB_2\Project_P2\output_json\data_part_1.json';
 ```
 
 ## Installatie en opzetten MongoDB
@@ -44,7 +46,8 @@ COPY (
 <p>Bij het installeren van MongoDB op het systeem, werd de default instelling "Install MongoDB as a Service" volgens de opgave uitgevinkt. Dit wil zeggen dat de databank enkel lokaal op het systeem zal bestaan.</p>
 
 ![img.png](media/img.png)
-<p>Hierna werden ook "MongoDB Shell" en "MongoDB Command Line Database Tools" geïnstalleerd.</p>
+<p>Hierna werden ook "MongoDB Shell" en "MongoDB Command Line Database Tools" geïnstalleerd.
+De adressen van de MongoDB applicatie, MongoDB Shell en MongoDB CL Database Tools werden na het installeren aan de 'Path' environment variable van het systeem toegevoegd</p>
 
 
 ### Aanmaken directories voor Shards en Replica Sets
@@ -178,8 +181,6 @@ mongod --shardsvr --replSet shard_C_repl --dbpath db\shardC0 --port 27024 --logp
 ```commandline
 mongod --shardsvr --replSet shard_C_repl --dbpath db\shardC1 --port 27025 --logpath db\shardC1\shardC1.log
 ```
-Ter illustratie:
-(FOTO)
 
 ### Verbinding MongoS-Cluster
 De volgende commando start een ```MongoS``` instantie op en verbindt het met de vooraf gemaakte ```cfg``` replica set. 
@@ -192,8 +193,8 @@ mongos --configdb cfg/localhost:26000,localhost:26001,localhost:26002 --bind_ip 
 MongoS via MongoDB Shell. De port hoeft hier niet vermeld te worden aangezien het de default port is.
 ```commandline
 mongosh --port 27017
-```
-[enabling sharding and such comes here] \
+``` 
+\
 Elk replica set wordt als een shard hieraan toegevoegd.
 ```javascript
 sh.addShard("shard_A_repl/localhost:27020,localhost:27021");
@@ -207,26 +208,18 @@ sh.addShard("shard_C_repl/localhost:27024,localhost:27025");
 ```
 
 ### Opzetten databank met JSON file
-EERST MULTIPLE SERVERS ZETTEN EN SHARDING ENABLEN EN DAN PAS COLLECTION OPLADEN!!!<br>
-EN IK MOET DE DB NOG EENS OPZETTEN MET DE VERKLEINDE DATASET!!!<br>
 De databank werd opgezet door gebruik te maken van de ```mongoimport``` command-line tool:
 
-#### 1. MongoDB Server Starten
-De adressen van de MongoDB applicatie, MongoDB Shell en MongoDB CL Database Tools werden na het installeren aan de 'Path' environment variable van het systeem toegevoegd. 
-De applicatie kan dus nu worden opgestart door in het CLI de commando ```mongod``` in te voeren.
-
-![img_1.png](media/img_1.png)
-
-#### 2. JSON-data importeren met ```mongoimport```
+#### 1. JSON-data importeren met ```mongoimport```
 Een nieuwe CLI-venster werd geopend in de locatie van de JSON file. 
 Met de volgende commando werd een nieuwe database "velo_db" met de collection "rides" aangemaakt met daarin de data van de JSON file:
 ```commandline
 mongoimport --db velo_db --collection rides --file .\data_part_1.json --jsonArray
 ```
-Bevestiging CLI:
+Bevestiging CLI:\
 ![img_5.png](media/img_5.png)
 
-#### 3. MongoDB Shell
+#### 2. MongoDB Shell
 Met de commando ```mongosh``` werd de MongoDB Shell opgestart en de verbinding werd automatisch vastgelegd.
 Aangezien er met de MongoS query router op port ```27017``` verbonden wordt 
 hoeft er geen port expliciet vermeld te worden.
@@ -302,3 +295,8 @@ Dataverdeling na het inladen van volledige data:
 ![img_21.png](media/img_21.png)
 
 ![img_22.png](media/img_22.png)
+
+#### Test MongoDB query api
+```javascript
+db.rides.find({ starttime: { $gte: ISODate("2015-09-22T00:00:00Z"), $lt: ISODate("2019-01-23T00:00:00Z") } }).limit(10).pretty()
+```
