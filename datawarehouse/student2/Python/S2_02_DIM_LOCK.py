@@ -73,7 +73,7 @@ def transfer_locks_to_dim_lock(source_conn, target_conn, batch_size=1000):
             ))
 
         # Voeg extra record toe voor "Geen slot"
-        # geen idee of dit eigenlijk nog steeds moet of niet?
+        # geen idee of dit eigenlijk nog steeds moet of niet? (logica naar begin verhuizen)
         transformed_data.append((
             None, None, "Geen locatie", "0000", "Onbekend", "(0,0)", "Geen Slot"
         ))

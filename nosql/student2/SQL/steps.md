@@ -17,6 +17,7 @@ s.additionalInfo = row.additionalinfo
 MERGE (s)-[:LOCATED_IN]->(d);
 ```
 
+
 ### Locks
 ```cypher
 LOAD CSV WITH HEADERS FROM 'file:///locks.csv' AS row

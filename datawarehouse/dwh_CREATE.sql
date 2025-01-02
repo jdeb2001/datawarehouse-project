@@ -1,8 +1,8 @@
-DROP TABLE IF EXISTS dim_date;
-DROP TABLE IF EXISTS dim_weather;
-DROP TABLE IF EXISTS dim_client;
-DROP TABLE IF EXISTS dim_lock;
-DROP TABLE IF EXISTS fact_ride;
+DROP TABLE IF EXISTS dim_date CASCADE;
+DROP TABLE IF EXISTS dim_weather CASCADE;
+DROP TABLE IF EXISTS dim_clients CASCADE;
+DROP TABLE IF EXISTS dim_locks CASCADE;
+DROP TABLE IF EXISTS fact_rides CASCADE;
 
 CREATE TABLE dim_date
 (
@@ -31,16 +31,23 @@ CREATE TABLE dim_clients
     clientID     INTEGER NOT NULL,
     name         VARCHAR(100),
     email        VARCHAR(100),
+    address      VARCHAR(255),
+    /*name         VARCHAR(100),
+    email        VARCHAR(100),
     street       VARCHAR(100),
     number       VARCHAR(10),
     city         VARCHAR(100),
-    postal_code  VARCHAR(255),
+    postal_code  VARCHAR(255),*/
     country_code VARCHAR(3),
-    --subscriptionType VARCHAR(50),
-    validFrom    DATE    NOT NULL,
-    validTo      DATE,
-    isActive     BOOLEAN NOT NULL DEFAULT true --klopt default true hier?
+    subscriptionType VARCHAR(50),
+    scd_start    DATE    NOT NULL, -- naar scd_start en scd_end hernoemen ipv validFrom en validTo
+    scd_end      DATE,
+    scd_version INTEGER NOT NULL DEFAULT 1,
+    isActive     BOOLEAN NOT NULL DEFAULT true,
+    last_ride_date DATE
 );
+
+
 
 --TOOD: steppen moeten aangeduid word door lock id 0
 CREATE TABLE dim_locks
