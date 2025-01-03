@@ -32,12 +32,6 @@ CREATE TABLE dim_clients
     name         VARCHAR(100),
     email        VARCHAR(100),
     address      VARCHAR(255),
-    /*name         VARCHAR(100),
-    email        VARCHAR(100),
-    street       VARCHAR(100),
-    number       VARCHAR(10),
-    city         VARCHAR(100),
-    postal_code  VARCHAR(255),*/
     country_code VARCHAR(3),
     subscriptionType VARCHAR(50),
     scd_start    DATE    NOT NULL, -- naar scd_start en scd_end hernoemen ipv validFrom en validTo
@@ -46,8 +40,6 @@ CREATE TABLE dim_clients
     isActive     BOOLEAN NOT NULL DEFAULT true,
     last_ride_date DATE
 );
-
-
 
 --TOOD: steppen moeten aangeduid word door lock id 0
 CREATE TABLE dim_locks
@@ -58,7 +50,7 @@ CREATE TABLE dim_locks
     stationAddress       VARCHAR(255),       -- Samengesteld adres van het station
     stationZipCode       VARCHAR(10),        -- Postcode van het station
     stationDistrict      VARCHAR(100),       -- District waar het station zich bevindt
-    stationCoordinations POINT,              -- GPS-coördinaten van het station, klopt POINT hiervoeor?
+    stationCoordinations POINT,              -- GPS-coördinaten van het station, klopt POINT hiervoor?
     stationType          VARCHAR(20)         -- Type station (bijv. 'Standard', 'Large')
 );
 
