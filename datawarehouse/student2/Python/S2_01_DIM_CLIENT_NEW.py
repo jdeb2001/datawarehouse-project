@@ -70,28 +70,28 @@ def process_clients(cur_op, cur_dwh, db_dwh):
             existing_address, existing_country_code, scd_version = existing_clients[userid]
             if address != existing_address or country_code != existing_country_code:
                 # Update bestaande klant (SCD2)
-                updates.append((datetime.now(), userid))
+                update_query = """
+                    UPDATE dim_clients
+                    SET scd_end = %s, isActive = FALSE
+                    WHERE clientID = %s AND isActive = TRUE
+                """
+                cur_dwh.execute(update_query, (datetime.now(), userid))
+                updates.append(userid)  # Logging of monitoring purposes
+
+                # Voeg nieuwe record toe
                 new_records.append((userid, name, address, country_code, subscriptiontypeid, scd_start, '2040-01-01', scd_version + 1, isActive, validfrom))
         else:
             # Nieuwe klant toevoegen
             new_records.append((userid, name, address, country_code, subscriptiontypeid, scd_start, '2040-01-01', 1, isActive, validfrom))
 
-    # Batchupdates uitvoeren
-    if updates:
-        print(f"Updating {len(updates)} existing records...")
-        update_query = """
-            UPDATE dim_clients
-            SET scd_end = %s, isActive = FALSE
-            WHERE clientID = %s AND isActive = TRUE
-        """
-        execute_values(cur_dwh, update_query, updates)
+    print(f"Updated {len(updates)} existing records.")
 
     # Batchinserts uitvoeren
     if new_records:
         print(f"Inserting {len(new_records)} new records...")
         insert_query = """
             INSERT INTO dim_clients (clientID, name, address, country_code, subscriptionType, scd_start, scd_end, scd_version, isActive, last_ride_date)
-            VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+            VALUES %s
         """
         execute_values(cur_dwh, insert_query, new_records)
 
