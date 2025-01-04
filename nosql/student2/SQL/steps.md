@@ -1,79 +1,90 @@
 # Project VeloDB Neo4J
-Bij dit project hoort nog een apart Word document met iets diepgaandere documentatie van wat ik hier gedaan heb. In deze markdown kan u de basis vinden van wat ik exact gedaan heb op dit moment.
+Bij dit project hoort nog een apart Word document met iets diepgaandere documentatie van wat ik hier gedaan heb. In deze markdown staan enkel de scripts die ik heb uitgevoerd om tot mijn resultaten te komen, dus is het beter om de documentatie zelf te bekijken voor uitgebreidere informatie.
 ## Startdata
-Eerst importeren we onze datasets die we uit onze Postgres databank gehaald hebben. In mijn geval heb ik dit met 4 aparte .csv bestanden gedaan voor Stations, Ritten, Vehicles en Gebruikers.
+Eerst importeren we onze datasets die we uit onze Postgres databank gehaald hebben. In mijn geval heb ik dit met 5 aparte .csv bestanden gedaan voor Stations, Rides, Locks, Vehicles en Users.
+
+### Stations
 ```cypher
 LOAD CSV WITH HEADERS FROM 'file:///stations.csv' AS row
-MERGE (district:District {name: row.district})
-CREATE (s:Station {
-stationid: row.stationid,
-number: row.number,
-type: row.type,
-street: row.street,
-number: row.number,
-zipcode: row.zipcode,
-gpscoord: row.gpscoord,
-additionalinfo: row.additionalinfo
-})
-MERGE (station)-[:LOCATED_IN]->(district);
+MERGE (d:District {name: row.district})
+MERGE (s:Station {stationId: row.stationid})
+ON CREATE SET s.type = row.type,
+s.street = row.street,
+s.number = row.number,
+s.zipcode = row.zipcode,
+s.gpsCoord = row.gpscoord,
+s.additionalInfo = row.additionalinfo
+MERGE (s)-[:LOCATED_IN]->(d);
 ```
 
+
+### Locks
+```cypher
+LOAD CSV WITH HEADERS FROM 'file:///locks.csv' AS row
+MERGE (s:Station {stationId: row.stationid})
+MERGE (l:Lock {lockId: row.lockid})
+ON CREATE SET l.stationLockNr = row.stationlocknr
+MERGE (l)-[:LOCATED_IN]->(s)
+WITH l, row
+FOREACH (_ IN CASE WHEN row.vehicleid IS NOT NULL AND row.vehicleid <> "" THEN [1] ELSE [] END |
+MERGE (v:Vehicle {vehicleId: row.vehicleid})
+MERGE (l)-[:HOLDS]->(v)
+);
+```
+
+### Vehicles 
 ```cypher
 LOAD CSV WITH HEADERS FROM 'file:///vehicles.csv' AS row
-CREATE (v:Vehicle {
-id: row.vehicleid,
-serialNumber: row.serialnumber,
-type: row.vehicletype,
-city: row.city,
-lastMaintenance: row.lastmaintenanceon
-});
+MERGE (v:Vehicle {vehicleId: row.vehicleid})
+ON CREATE SET v.serialNumber = row.serialnumber,
+v.type = row.vehicletype,
+v.city = row.city,
+v.lastMaintenance = datetime(replace(row.lastmaintenanceon, " ", "T"));
 ```
 
+### Users
 ```cypher
+CREATE CONSTRAINT user_id_unique IF NOT EXISTS
+FOR (u:User) REQUIRE u.id IS UNIQUE;
+
 LOAD CSV WITH HEADERS FROM 'file:///users.csv' AS row
-CREATE (u:User {
-id: row.userid,
-name: row.name,
-email: row.email,
-street: row.street,
-number: row.number,
-zipcode: row.zipcode,
-city: row.city,
-countryCode: row.country_code
-});
+MERGE (u:User {id: row.userid})
+ON CREATE SET u.email = row.email,
+u.street = row.street,
+u.number = row.number,
+u.zipcode = row.zipcode,
+u.city = row.city,
+u.countryCode = row.country_code;
 ```
 
+### Rides
 ```cypher
 LOAD CSV WITH HEADERS FROM 'file:///rides.csv' AS row
-// Optioneel stations matchen, alleen als startlockid of endlockid niet null is
-OPTIONAL MATCH (startStation:Station {id: row.startlockid})
-OPTIONAL MATCH (endStation:Station {id: row.endlockid})
-OPTIONAL MATCH (vehicle:Vehicle {id: row.vehicleid})
-OPTIONAL MATCH (user:User {id: row.userid})
+OPTIONAL MATCH (startLock:Lock {lockId: row.startlockid})-[:LOCATED_IN]->(startStation:Station)
+OPTIONAL MATCH (endLock:Lock {lockId: row.endlockid})-[:LOCATED_IN]->(endStation:Station)
+OPTIONAL MATCH (v:Vehicle {vehicleId: row.vehicleid})
+OPTIONAL MATCH (u:User {id: row.userid})
 
 // Maak de Ride node aan
-CREATE (ride:Ride {
-id: row.rideid,
-startTime: datetime(replace(row.starttime, " ", "T")), // Verzeker de juiste conversie naar datetime
-endTime: datetime(replace(row.endtime, " ", "T")) // Verzeker de juiste conversie naar datetime
+CREATE (r:Ride {
+rideId: row.rideid,
+startTime: datetime(replace(row.starttime, " ", "T")),
+endTime: datetime(replace(row.endtime, " ", "T"))
 })
-
-// Koppel rit aan start en eind station, maar alleen als de stations niet null zijn
-WITH ride, startStation, endStation, vehicle, user
-// Koppel rit aan start station, als het station bestaat
-FOREACH (_ IN CASE WHEN startStation IS NOT NULL THEN [1] ELSE [] END |
-MERGE (ride)-[:STARTS_AT]->(startStation)
+WITH r, startLock, endLock, v, u
+FOREACH (_ IN CASE WHEN startLock IS NOT NULL THEN [1] ELSE [] END |
+MERGE (r)-[:STARTS_AT]->(startLock)
 )
-// Koppel rit aan eind station, als het station bestaat
-FOREACH (_ IN CASE WHEN endStation IS NOT NULL THEN [1] ELSE [] END |
-MERGE (ride)-[:ENDS_AT]->(endStation)
+FOREACH (_ IN CASE WHEN endLock IS NOT NULL THEN [1] ELSE [] END |
+MERGE (r)-[:ENDS_AT]->(endLock)
 )
+FOREACH (_ IN CASE WHEN v IS NOT NULL THEN [1] ELSE [] END |
+MERGE (r)-[:USES]->(v)
+)
+FOREACH (_ IN CASE WHEN u IS NOT NULL THEN [1] ELSE [] END |
+MERGE (r)-[:INITIATED_BY]->(u)
+);
 
-// Koppel rit aan voertuig, als het voertuig bestaat
-MERGE (ride)-[:USES]->(vehicle)
-
-// Koppel rit aan gebruiker
-MERGE (ride)-[:INITIATED_BY]->(user)
 ```
 
 ## Antwoorden op de verschillende queries:
@@ -81,41 +92,51 @@ MERGE (ride)-[:INITIATED_BY]->(user)
 Om een antwoord op deze query te kunnen voorzien, moeten we een relatie kunnen leggen tussen Voertuigen en Ritten. Dat kunnen we doen aan de hand van de USES relatie die we daarnet aangemaakt hebben:
 ```cypher
 MATCH (v:Vehicle)<-[:USES]-(r:Ride)
-RETURN v.id AS VehicleId, COUNT(r) AS UsageCount
-ORDER BY UsageCount DESC
-LIMIT 10;
-
+RETURN v.vehicleId AS VehicleID, COUNT(r) AS RideCount
+ORDER BY RideCount DESC
+LIMIT 5;
 ```
 
 ### Identificeer voor een station en uur naar welke buurt fietsers voornamelijk rijden.
+In dit geval kies ik voor een station met stationId 1 en filteren we tussen 8u en 9u:
 ```cypher
-MATCH (startStation:Station {id: 'station_id'})<-[:STARTS_AT]-(r:Ride)-[:ENDS_AT]->(endStation:Station)
-MATCH (endStation)-[:LOCATED_IN]->(district:District)
-WHERE r.startTime >= datetime('YYYY-MM-DDTHH:MM:00') AND r.startTime < datetime('YYYY-MM-DDTHH:MM:59')
-RETURN district.name AS District, COUNT(r) AS RideCount
-ORDER BY RideCount DESC
-LIMIT 5;
-
+MATCH (s:Station {stationId: "1"})<-[:LOCATED_IN]-(lStart:Lock)<-[:STARTS_AT]-(r:Ride)-[:ENDS_AT]->(lEnd:Lock)-[:LOCATED_IN]->(endStation:Station)-[:LOCATED_IN]->(d:District)
+WHERE time(r.startTime) >= time("08:00:00") AND time(r.startTime) < time("09:00:00")
+RETURN d.name AS DestinationDistrict, COUNT(r) AS RideCount
+ORDER BY RideCount DESC;
 ```
 
 ### Welke buurten zijn het sterkst met elkaar verbonden?
 ```cypher
-MATCH (startStation)-[:LOCATED_IN]->(startDistrict:District)
-MATCH (endStation)-[:LOCATED_IN]->(endDistrict:District)
-MATCH (r:Ride)-[:STARTS_AT]->(startStation)
-MATCH (r)-[:ENDS_AT]->(endStation)
+MATCH (startDistrict:District)<-[:LOCATED_IN]-(:Station)<-[:LOCATED_IN]-(lStart:Lock)<-[:STARTS_AT]-(r:Ride)-[:ENDS_AT]->(lEnd:Lock)-[:LOCATED_IN]->(:Station)-[:LOCATED_IN]->(endDistrict:District)
+WHERE startDistrict.name <> endDistrict.name
 RETURN startDistrict.name AS StartDistrict, endDistrict.name AS EndDistrict, COUNT(r) AS RideCount
 ORDER BY RideCount DESC
 LIMIT 10;
 ```
 
-### Eigen query: hoe kan je het kortste pad vinden tussen verschillende stations?
+### Eigen query: vind de voertuigen die het langste stilstaan in een bepaald station na hun laatste rit
 ```cypher
-MATCH (startStation:Station), (endStation:Station)
-WHERE startStation <> endStation
-WITH startStation, endStation
-MATCH p = shortestPath((startStation)-[:STARTS_AT|ENDS_AT*]-(endStation))
-RETURN startStation.id AS StartStation, endStation.id AS EndStation, length(p) AS PathLength
-ORDER BY PathLength ASC
+// Vind de laatste rit van elk voertuig
+MATCH (r:Ride)-[:ENDS_AT]->(lEnd:Lock)-[:LOCATED_IN]->(sEnd:Station),
+(r)-[:USES]->(v:Vehicle)
+WITH v.vehicleId AS VehicleID, 
+MAX(r.endTime) AS LastRideTime, 
+sEnd.stationId AS LastStation
+
+// Controleer of het voertuig geen nieuwe rit gestart heeft sinds de laatste rit
+OPTIONAL MATCH (v)<-[:USES]-(newRide:Ride)-[:STARTS_AT]->(lStart:Lock)
+WHERE newRide.startTime > LastRideTime
+WITH VehicleID, LastRideTime, LastStation, COUNT(newRide) AS NewRides
+WHERE NewRides = 0 // Alleen voertuigen zonder nieuwe ritten
+
+// Bereken hoe lang het voertuig stilstaat en formatteer de IdleTime
+WITH VehicleID, LastStation, duration.between(LastRideTime, datetime()) AS IdleTime
+RETURN VehicleID, 
+LastStation AS StationID,
+IdleTime.days AS DaysIdle, 
+IdleTime.hours AS HoursIdle, 
+IdleTime.minutes AS MinutesIdle
+ORDER BY DaysIdle DESC, HoursIdle DESC, MinutesIdle DESC
 LIMIT 10;
 ```

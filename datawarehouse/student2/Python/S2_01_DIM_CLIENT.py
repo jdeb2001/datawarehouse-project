@@ -7,7 +7,7 @@ from psycopg2.extras import execute_values
 source_db_config = {
     'dbname': 'velodb',
     'user': 'postgres',
-    'password': '<PASSWORD>',
+    'password': 'Goldyke001',
     'host': 'localhost',
     'port': '5432',
 }
@@ -15,67 +15,130 @@ source_db_config = {
 target_db_config = {
     'dbname': 'dwh_bike_analytics',
     'user': 'postgres',
-    'password': '<PASSWORD>',
+    'password': 'Goldyke001',
     'host': 'localhost',
     'port': '5432',
 }
 
+def get_first_ride_date(source_cursor, userid):
+    """
+    Haalt de datum van de eerste rit op voor een gebruiker.
+    """
+    source_cursor.execute("""
+        SELECT MIN(starttime) 
+        FROM rides 
+        WHERE subscriptionid IN (
+            SELECT subscriptionid 
+            FROM subscriptions 
+            WHERE userid = %s
+        )
+    """, (userid,))
+    result = source_cursor.fetchone()
+    return result[0] if result and result[0] else None
+
+def update_dim_client(target_cursor, userid, transformed_record):
+    """
+    Controleert of een klant al bestaat en implementeert SCD Type 2
+    met expliciete versiebeheer (`scd_version`).
+    """
+    # Controleer bestaande actieve records
+    target_cursor.execute("""
+        SELECT email, subscriptionType, scd_version
+        FROM dim_clients
+        WHERE clientID = %s AND isActive = TRUE
+    """, (userid,))
+    existing_record = target_cursor.fetchone()
+
+    if not existing_record:
+        return "insert"
+
+    # Vergelijk velden om wijzigingen te detecteren
+    email_latest, subscription_latest, scd_version_latest = existing_record
+    email, subscription_type = transformed_record[2], transformed_record[9]
+
+    if email != email_latest or subscription_type != subscription_latest:
+        # Sluit het huidige record
+        target_cursor.execute("""
+            UPDATE dim_clients
+            SET scd_end = CURRENT_DATE, isActive = FALSE
+            WHERE clientID = %s AND isActive = TRUE
+        """, (userid,))
+        return scd_version_latest + 1  # Nieuwe versie
+
+    return "no_change"
+
 def transfer_users_to_dim_client(source_conn, target_conn, batch_size=1000):
+    """Verwerkt gebruikersgegevens naar de `dim_clients` tabel met SCD Type 2."""
     try:
-        # EXTRACTIE VAN DATA
+        # Extract
         print("Starting data extraction...")
         source_cursor = source_conn.cursor()
-        source_cursor.execute("SELECT userid, name, email, street, number, city, zipcode, country_code FROM velo_users")
+        source_cursor.execute("""
+            SELECT 
+                u.userid, u.name, u.email, u.street, u.number, u.city, u.zipcode, u.country_code, 
+                s.subscriptiontypeid, MIN(s.validfrom)
+            FROM 
+                velo_users u
+            LEFT JOIN 
+                subscriptions s ON u.userid = s.userid
+            GROUP BY 
+                u.userid, u.name, u.email, u.street, u.number, u.zipcode, u.city, u.country_code, s.subscriptiontypeid
+        """)
         users_data = source_cursor.fetchall()
+        print(f"Extracted {len(users_data)} records.")
 
-        # TRANSFORMATIE VAN DATA
-        # checken of dim_client al bestaat etc
+        # Transform
         print("Starting data transformation...")
         transformed_data = []
         for user in users_data:
-            userid, name, email, street, number, city, postal_code, country_code = user
+            userid, name, email, street, number, city, postal_code, country_code, subscription_type, valid_from = user
 
-            name = name.strip().title() if name else "Unknown"
-            email = email.lower() if email else "unknown@example.com"
-            street = street.strip().title() if street else "Unknown"
-            number = number.strip() if number else "Unknown"
-            city = city.strip().title() if city else "Unknown"
-            postal_code = postal_code.strip() if postal_code else "0000"
-            country_code = country_code.strip() if country_code else "N/A"
-
-            valid_from = datetime.now().strftime("%Y-%m-%d")
-            valid_to = None
+            # Haal de datum van de eerste rit op
+            first_ride_date = get_first_ride_date(source_cursor, userid)
+            scd_start = first_ride_date or valid_from or datetime.now().strftime("%Y-%m-%d")
+            scd_end = None
+            scd_version = 1
             is_active = True
 
-            if not userid:
-                print("Skipping records with missing User IDs.")
-                continue
-
-            transformed_data.append((userid, name, email, street, number, city, postal_code, country_code, valid_from, valid_to, is_active))
+            transformed_record = (
+                userid, name, email, street, number, city, postal_code, country_code,
+                subscription_type, scd_start, scd_end, scd_version, is_active
+            )
+            transformed_data.append(transformed_record)
         print(f"Transformed {len(transformed_data)} records.")
 
-
-        # LOADING
+        # Load
         print("Starting data loading...")
         target_cursor = target_conn.cursor()
-        insert_query = """
-            INSERT INTO dim_clients (
-                clientID, name, email, street, number, city, postal_code, country_code, validFrom, validTo, isActive
-            )
-            VALUES %s
-        """
 
-        # batch loading met execute_values uit psycopg2
-        for i in range(0, len(transformed_data), batch_size):
-            batch = transformed_data[i:i + batch_size]
-            execute_values(target_cursor, insert_query, batch)
-            print(f"Batch {i}/{len(transformed_data)} loaded successfully.")
+        for record in transformed_data:
+            userid = record[0]
+            action = update_dim_client(target_cursor, userid, record)
 
+            if action == "insert":
+                insert_query = """
+                    INSERT INTO dim_clients (
+                        clientID, name, email, street, number, city, postal_code, country_code, subscriptionType,
+                        scd_start, scd_end, scd_version, isActive
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                target_cursor.execute(insert_query, record)
+            elif isinstance(action, int):  # Nieuwe versie
+                scd_version = action
+                record = record[:-2] + (scd_version, True)  # Update versie en status
+                insert_query = """
+                    INSERT INTO dim_clients (
+                        clientID, name, email, street, number, city, postal_code, country_code, subscriptionType,
+                        scd_start, scd_end, scd_version, isActive
+                    ) VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s)
+                """
+                target_cursor.execute(insert_query, record)
 
+        # Commit wijzigingen
         target_conn.commit()
-        print("Successfully inserted users in dim_client")
+        print("Successfully updated dim_clients with SCD Type 2.")
     except Exception as e:
-        print(f"Error with inserting data: {e}")
+        print(f"Error during data transfer: {e}")
         target_conn.rollback()
 
 def connect_to_db(config):
@@ -102,4 +165,5 @@ def main():
             target_conn.close()
         print("Closed connections")
 
-main()
+if __name__ == "__main__":
+    main()

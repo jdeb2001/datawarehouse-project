@@ -47,7 +47,6 @@ def transfer_locks_to_dim_lock(source_conn, target_conn, batch_size=1000):
 
         # === TRANSFORM ===
         print("Starting data transformation...")
-        print("Start data-transformatie...")
         transformed_data = []
         unique_lock_ids = set()
 
@@ -74,7 +73,7 @@ def transfer_locks_to_dim_lock(source_conn, target_conn, batch_size=1000):
             ))
 
         # Voeg extra record toe voor "Geen slot"
-        # geen idee of dit eigenlijk nog steeds moet of niet?
+        # geen idee of dit eigenlijk nog steeds moet of niet? (logica naar begin verhuizen)
         transformed_data.append((
             None, None, "Geen locatie", "0000", "Onbekend", "(0,0)", "Geen Slot"
         ))
@@ -82,7 +81,6 @@ def transfer_locks_to_dim_lock(source_conn, target_conn, batch_size=1000):
         print(f"Transformed {len(transformed_data)} records.")
 
         # === LOADING ===
-        print("Starting data loading...")
         # hier en in andere scripts moeten we gebruik maken van batch-inserts om de performantie van data inladen te verhogen
         # dit is zeker nodig als we met gigantische hoeveelheden data gaan werken, wat zeker het geval gaat zijn bij het feit en de dimensie client ook
         target_cursor = target_conn.cursor()
