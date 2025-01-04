@@ -1,12 +1,11 @@
 import psycopg2
-import pandas as pd
 import dwh_tools as dwh
-from config import SERVER, DATABASE_VELO, DATABASE_DWH, USERNAME, PASSWORD, PORT
+from config import SERVER, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 
 def fill_table_dim_weather(cursor_dwh, table_name='dim_weather'):
     reset_statement = f"""
-        TRUNCATE {table_name};
+        TRUNCATE {table_name} CASCADE;
         """
     insert_query = f"""
         INSERT INTO {table_name} (weather_type, weather_description)

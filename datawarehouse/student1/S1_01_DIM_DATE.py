@@ -1,7 +1,7 @@
 import psycopg2
 import pandas as pd
 import dwh_tools as dwh
-from config import SERVER, DATABASE_VELO, DATABASE_DWH, USERNAME, PASSWORD, PORT
+from config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 
 def fetch_min_start_date(cursor_op):
@@ -57,7 +57,7 @@ def fill_table_dim_date(cursor_dwh, start_date, end_date='2040-01-01', table_nam
 def main():
     try:
         # Connect to the 'velo_db' database
-        conn_op = dwh.establish_connection(SERVER, DATABASE_VELO, USERNAME, PASSWORD, PORT)
+        conn_op = dwh.establish_connection(SERVER, DATABASE_OP, USERNAME, PASSWORD, PORT)
         cursor_op = conn_op.cursor()
 
         # Connect to the 'dwh_bike_analytics' database
