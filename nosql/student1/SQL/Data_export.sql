@@ -1,6 +1,11 @@
 SELECT MAX(starttime), MIN(starttime)
 FROM rides;
 
+SELECT DISTINCT(zipcode)
+FROM stations
+GROUP BY zipcode;
+
+
 COPY (
     SELECT JSON_AGG(ROW_TO_JSON(data_part_1))
     FROM (SELECT rideid,

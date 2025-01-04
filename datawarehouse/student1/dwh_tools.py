@@ -1,8 +1,7 @@
-import config
 import psycopg2
-from config import SERVER, DATABASE_VELO, DATABASE_DWH, USERNAME, PASSWORD, PORT
+from config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
-def establish_connection(server=SERVER, database=DATABASE_VELO, username=USERNAME, password=PASSWORD, port=PORT):
+def establish_connection(server=SERVER, database=DATABASE_OP, username=USERNAME, password=PASSWORD, port=PORT):
     """
     Establishes a connection to the specified PostgreSQL database.
     Args:
