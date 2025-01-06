@@ -1,6 +1,5 @@
 import json
 import os
-from datetime import datetime
 import math
 from psycopg2.extras import execute_values
 import datawarehouse.student2.python.dwh_tools as dwh
@@ -54,7 +53,7 @@ def fetch_cached_data(cur_dwh):
     return date_cache, weather_sk_cache, client_cache, lock_cache, lock_coords
 
 def assess_weather_type(starttime, zipcode):
-    """Determine the weather type based on JSON files."""
+    """Bepaal het weer type op basis van de correcte JSON-file"""
     file_path = f"./weather/{zipcode}_{starttime.date()}_{starttime.hour:02d}h.json"
     if os.path.isfile(file_path):
         with open(file_path, "r") as json_file:
@@ -69,7 +68,7 @@ def assess_weather_type(starttime, zipcode):
     return "weertype onbekend"
 
 def haversine(coord1, coord2):
-    """Calculate the Haversine distance between two points."""
+    """Bereken de afstand tussen 2 punten aan de hand van de Haversine formule."""
     R = 6371  # Earth radius in km
     lat1, lon1 = coord1
     lat2, lon2 = coord2
@@ -81,6 +80,9 @@ def haversine(coord1, coord2):
     return R * c
 
 def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
+    """Alle rit data ophalen en transformeren/bewerken voordat we deze in onze fact_ride tabel gaan steken"""
+
+    # Extracting
     print("Fetching rides data from operational database...")
     cur_op.execute("""
         SELECT
@@ -104,6 +106,7 @@ def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
     print("Caching dimension data...")
     date_cache, weather_sk_cache, client_cache, lock_cache, lock_coords = fetch_cached_data(cur_dwh)
 
+    # Transforming
     fact_rides = []
     for ride in rides_data:
         rideid, starttime, endtime, startlockid, endlockid, zipcode, userid = ride
@@ -154,7 +157,7 @@ def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
 
     print(f"Prepared {len(fact_rides)} fact rides records for insertion.")
 
-    # Batch insert
+    # Batch insert (loading)
     if fact_rides:
         print("Inserting records into fact_rides table...")
         insert_query = """
