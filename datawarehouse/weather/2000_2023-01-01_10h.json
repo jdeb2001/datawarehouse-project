@@ -1,0 +1,50 @@
+{
+    "zipCode": 2000,
+    "coord": {
+        "lon": 4.3523509,
+        "lat": 51.2188395
+    },
+    "weather": [
+        {
+            "id": 500,
+            "main": "Rain",
+            "description": "light rain",
+            "icon": "10d"
+        }
+    ],
+    "base": "stations",
+    "main": {
+        "temp": 278.15,
+        "feels_like": 277.41,
+        "temp_min": 275.15,
+        "temp_max": 280.38,
+        "pressure": 1010,
+        "humidity": 80,
+        "sea_level": 1010,
+        "grnd_level": 933
+    },
+    "visibility": 8000,
+    "wind": {
+        "speed": 5,
+        "deg": 270,
+        "gust": 8
+    },
+    "rain": {
+        "1h": 0.5
+    },
+    "clouds": {
+        "all": 80
+    },
+    "dt": 1672563600,
+    "sys": {
+        "type": 2,
+        "id": 2075663,
+        "country": "BE",
+        "sunrise": 1661834187,
+        "sunset": 1661885248
+    },
+    "timezone": 3600,
+    "id": 279936,
+    "name": "Antwerpen",
+    "cod": 200
+}

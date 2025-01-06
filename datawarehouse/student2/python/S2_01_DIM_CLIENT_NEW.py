@@ -1,8 +1,8 @@
 from datetime import datetime
 import psycopg2
 from psycopg2.extras import execute_values
-import dwh_tools as dwh
-from config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
+import dwh_tools_stud1 as dwh
+from config_stud1 import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 def test_connections(cur_op, cur_dwh):
     try:

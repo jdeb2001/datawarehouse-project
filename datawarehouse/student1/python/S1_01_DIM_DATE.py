@@ -19,23 +19,23 @@ def fetch_max_start_date(cursor_op):
     cursor_op.execute('SELECT MAX(starttime) FROM rides')
     return cursor_op.fetchone()[0]
 
-def fill_table_dim_date(cursor_dwh, start_date, end_date='2040-01-01', table_name='dim_date'):
+def fill_table_dim_date(cursor_dwh, min_start_date, max_start_date='2040-01-01', table_name='dim_date'):
     """
     Fills the 'dim_date' table with date-related data.
     Args:
         cursor_dwh: The cursor object for the 'dwh_bike_analytics' database.
-        start_date (str): The start date for filling the table.
-        end_date (str): The end date for filling the table (default is '2040-01-01').
+        min_start_date (str): The start date for filling the table.
+        max_start_date (str): The end date for filling the table (default is '2040-01-01').
         table_name (str): The name of the table (default is 'dim_date').
     """
     insert_query = f"""
     INSERT INTO {table_name} (date, day_of_month, month, year, day_of_week, day_of_year, weekday, month_name, quarter)
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
-    current_date = pd.to_datetime(start_date)
+    current_date = pd.to_datetime(min_start_date)
     # TODO: use fetch_max_start_date() for end_date
-    end_date = pd.to_datetime(end_date)
-    while current_date <= end_date:
+    max_start_date = pd.to_datetime(max_start_date)
+    while current_date <= max_start_date:
         day_of_month = current_date.day
         month = current_date.month
         year = current_date.year
@@ -65,11 +65,14 @@ def main():
         cursor_dwh = conn_dwh.cursor()
 
         # Fetch minimum start date
-        start_date = fetch_min_start_date(cursor_op)
-        print(f"Minimum start date: {start_date}")
+        min_start_date = fetch_min_start_date(cursor_op)
+        print(f"Minimum start date: {min_start_date}")
+        # Fetch max start date
+        max_start_date = fetch_max_start_date(cursor_op)
+        print(f"Maximum start date: {max_start_date}")
 
         # Fill the 'dim_date' table
-        fill_table_dim_date(cursor_dwh, start_date, '2100-01-01', 'dim_date')
+        fill_table_dim_date(cursor_dwh, min_start_date, max_start_date, 'dim_date')
 
         # Close the connections
         cursor_op.close()

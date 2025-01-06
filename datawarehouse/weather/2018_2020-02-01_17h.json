@@ -1,0 +1,47 @@
+{
+    "zipCode": 2018,
+    "coord": {
+        "lon": 4.3935593,
+        "lat": 51.2048269
+    },
+    "weather": [
+        {
+            "id": 802,
+            "main": "Clouds",
+            "description": "scattered clouds",
+            "icon": "03d"
+        }
+    ],
+    "base": "stations",
+    "main": {
+        "temp": 284.15,
+        "feels_like": 284.41,
+        "temp_min": 282.15,
+        "temp_max": 286.15,
+        "pressure": 1012,
+        "humidity": 70,
+        "sea_level": 1012,
+        "grnd_level": 933
+    },
+    "visibility": 10000,
+    "wind": {
+        "speed": 3,
+        "deg": 315,
+        "gust": 5
+    },
+    "clouds": {
+        "all": 40
+    },
+    "dt": 1580572800,
+    "sys": {
+        "type": 2,
+        "id": 2075663,
+        "country": "BE",
+        "sunrise": 1661834187,
+        "sunset": 1661885248
+    },
+    "timezone": 7200,
+    "id": 279936,
+    "name": "Antwerpen",
+    "cod": 200
+}

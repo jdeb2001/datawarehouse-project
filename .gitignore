@@ -6,3 +6,6 @@ httpRequests/
 # Datasource local storage ignored files
 dataSources/
 dataSources.local.xml
+
+# local test files
+rough_work.py

@@ -5,9 +5,9 @@ import psycopg2
 from psycopg2.extras import execute_values
 # vergeet niet om wachtwoord te veranderen met eigen wachtwoord!
 source_db_config = {
-    'dbname': 'velodb',
+    'dbname': 'velo_db',
     'user': 'postgres',
-    'password': 'Goldyke001',
+    'password': 'Student_1234',
     'host': 'localhost',
     'port': '5432',
 }
@@ -15,7 +15,7 @@ source_db_config = {
 target_db_config = {
     'dbname': 'dwh_bike_analytics',
     'user': 'postgres',
-    'password': 'Goldyke001',
+    'password': 'Student_1234',
     'host': 'localhost',
     'port': '5432',
 }

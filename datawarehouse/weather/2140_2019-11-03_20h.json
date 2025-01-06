@@ -1,0 +1,50 @@
+{
+    "zipCode": 2140,
+    "coord": {
+        "lon": 4.4216624,
+        "lat": 51.21048
+    },
+    "weather": [
+        {
+            "id": 500,
+            "main": "Clouds",
+            "description": "overcast clouds",
+            "icon": "10n"
+        }
+    ],
+    "base": "stations",
+    "main": {
+        "temp": 285.15,
+        "feels_like": 285.41,
+        "temp_min": 283.15,
+        "temp_max": 287.15,
+        "pressure": 991,
+        "humidity": 44,
+        "sea_level": 991,
+        "grnd_level": 910
+    },
+    "visibility": 3000,
+    "wind": {
+        "speed": 3.92,
+        "deg": 100,
+        "gust": 6.34
+    },
+    "rain": {
+        "1h": 0.1
+    },
+    "clouds": {
+        "all": 100
+    },
+    "dt": 1572807600,
+    "sys": {
+        "type": 2,
+        "id": 2075663,
+        "country": "BE",
+        "sunrise": 1661834187,
+        "sunset": 1661885248
+    },
+    "timezone": 7200,
+    "id": 3163860,
+    "name": "Borgerhout",
+    "cod": 200
+}

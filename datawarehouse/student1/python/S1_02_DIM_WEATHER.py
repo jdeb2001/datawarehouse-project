@@ -4,14 +4,14 @@ from config import SERVER, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 
 def fill_table_dim_weather(cursor_dwh, table_name='dim_weather'):
-    reset_statement = f"""
-        TRUNCATE {table_name} CASCADE;
-        """
+    # reset_statement = f"""
+    #     TRUNCATE {table_name} CASCADE;
+    #     """
     insert_query = f"""
         INSERT INTO {table_name} (weather_type, weather_description)
         VALUES (%s, %s);
         """
-    cursor_dwh.execute(reset_statement)
+    # cursor_dwh.execute(reset_statement)
     cursor_dwh.execute(insert_query, (
         "onaangenaam", "neerslag"
     ))
