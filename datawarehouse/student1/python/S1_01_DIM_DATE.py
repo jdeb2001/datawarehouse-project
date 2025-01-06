@@ -1,7 +1,7 @@
 import psycopg2
 import pandas as pd
-import dwh_tools as dwh
-from config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
+import datawarehouse.student1.python.dwh_tools as dwh
+from datawarehouse.student1.python.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 
 def fetch_min_start_date(cursor_op):

@@ -1,6 +1,5 @@
-import config
 import psycopg2
-from config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
+from .config.config import SERVER, DATABASE_OP, USERNAME, PASSWORD, PORT
 
 def establish_connection(server=SERVER, database=DATABASE_OP, username=USERNAME, password=PASSWORD, port=PORT):
     """
