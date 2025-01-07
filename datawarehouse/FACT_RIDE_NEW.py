@@ -91,6 +91,7 @@ def fetch_existing_ride_sks(cur_dwh):
 def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
     """Verwerk rides data en laad alleen nieuwe records in fact_rides."""
     print("Fetching rides data from operational database...")
+    # Extract
     cur_op.execute("""
         SELECT
         r.rideid,
@@ -115,6 +116,7 @@ def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
     print("Fetching existing ride_sk values...")
     existing_ride_sks = fetch_existing_ride_sks(cur_dwh)
 
+    # Transform
     fact_rides = []
     for ride in rides_data:
         rideid, starttime, endtime, startlockid, endlockid, zipcode, userid = ride
@@ -167,8 +169,9 @@ def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
 
         fact_rides.append((rideid, date_sk, weather_sk, client_sk, start_lock_sk, end_lock_sk, duration, distance))
 
-    print(f"Prepared {len(fact_rides)} new fact rides records for insertion.")
+    print(f"Prepared {len(fact_rides)} new fact records for insertion.")
 
+    # Load
     # Batch insert
     if fact_rides:
         print("Inserting records into fact_rides table...")
@@ -189,12 +192,16 @@ def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
 
 def main():
     db_op = dwh.establish_connection(SERVER, DATABASE_OP, USERNAME, PASSWORD, PORT)
+    print("Connection operational db established.")
     db_dwh = dwh.establish_connection(SERVER, DATABASE_DWH, USERNAME, PASSWORD, PORT)
+    print("Connection dwh established.")
     cur_op = db_op.cursor()
     cur_dwh = db_dwh.cursor()
 
     try:
         test_connections(cur_op, cur_dwh)
+
+        # E + T + L
         process_fact_rides(cur_op, cur_dwh, db_dwh)
     except Exception as e:
         print(f"Error during processing: {e}")

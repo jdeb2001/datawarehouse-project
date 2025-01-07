@@ -4,14 +4,10 @@ from datawarehouse.student1.python.config import SERVER, DATABASE_DWH, USERNAME,
 
 
 def fill_table_dim_weather(cursor_dwh, table_name='dim_weather'):
-    # reset_statement = f"""
-    #     TRUNCATE {table_name} CASCADE;
-    #     """
     insert_query = f"""
         INSERT INTO {table_name} (weather_type, weather_description)
         VALUES (%s, %s);
         """
-    # cursor_dwh.execute(reset_statement)
     cursor_dwh.execute(insert_query, (
         "onaangenaam", "neerslag"
     ))
@@ -34,9 +30,13 @@ def main():
         # Connect to the 'dwh_bike_analytics' database
         conn_dwh = dwh.establish_connection(SERVER, DATABASE_DWH, USERNAME, PASSWORD, PORT)
         cursor_dwh = conn_dwh.cursor()
+        print("Connection dwh established.")
 
+        # Load
         # Fill the 'dim_weather' table
+        print("Inserting weather types into table dim_weather...")
         fill_table_dim_weather(cursor_dwh)
+        print("Data loaded successfully.")
 
         # Close connections
         cursor_dwh.close()

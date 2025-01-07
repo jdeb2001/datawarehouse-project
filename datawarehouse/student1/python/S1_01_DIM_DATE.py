@@ -33,8 +33,9 @@ def fill_table_dim_date(cursor_dwh, min_start_date, max_start_date='2040-01-01',
     VALUES (%s, %s, %s, %s, %s, %s, %s, %s, %s)
     """
     current_date = pd.to_datetime(min_start_date)
-    # TODO: use fetch_max_start_date() for end_date
     max_start_date = pd.to_datetime(max_start_date)
+
+    # Transform
     while current_date <= max_start_date:
         day_of_month = current_date.day
         month = current_date.month
@@ -45,6 +46,7 @@ def fill_table_dim_date(cursor_dwh, min_start_date, max_start_date='2040-01-01',
         month_name = current_date.strftime('%B')
         quarter = (current_date.month - 1) // 3 + 1  # Calculate quarter based on the month
 
+        # Load
         # Execute the INSERT query
         cursor_dwh.execute(insert_query, (
             current_date, day_of_month, month, year, day_of_week, day_of_year, weekday, month_name, quarter
@@ -59,11 +61,15 @@ def main():
         # Connect to the 'velo_db' database
         conn_op = dwh.establish_connection(SERVER, DATABASE_OP, USERNAME, PASSWORD, PORT)
         cursor_op = conn_op.cursor()
+        print("Connection operational db established.")
 
         # Connect to the 'dwh_bike_analytics' database
         conn_dwh = dwh.establish_connection(SERVER, DATABASE_DWH, USERNAME, PASSWORD, PORT)
         cursor_dwh = conn_dwh.cursor()
+        print("Connection dwh: established.")
 
+        # Extract
+        print("Fetching dates from operational db...")
         # Fetch minimum start date
         min_start_date = fetch_min_start_date(cursor_op)
         print(f"Minimum start date: {min_start_date}")
@@ -71,8 +77,11 @@ def main():
         max_start_date = fetch_max_start_date(cursor_op)
         print(f"Maximum start date: {max_start_date}")
 
+        # Transform + Load
         # Fill the 'dim_date' table
-        fill_table_dim_date(cursor_dwh, min_start_date, max_start_date, 'dim_date')
+        print("Inserting dates into table...")
+        fill_table_dim_date(cursor_dwh, min_start_date, max_start_date)
+        print("Data loaded successfully.")
 
         # Close the connections
         cursor_op.close()
