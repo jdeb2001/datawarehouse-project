@@ -19,36 +19,6 @@ def test_connections(cur_op, cur_dwh):
         raise
 
 
-def assess_weather_type(starttime, zipcode):
-    file_path = f"./weather/{zipcode}_{starttime.date()}_{starttime.hour:02d}h.json"
-    print(file_path)
-    if os.path.isfile(file_path):
-        print("file found!")
-        with open(file_path, "r") as json_file:
-            hourly_report = json.load(json_file)
-            print("file loaded as json")
-            print(hourly_report)
-            report_datetime = datetime.fromtimestamp(hourly_report["dt"])
-            # if report_datetime.date() == starttime.date() and report_datetime.hour == starttime.hour:
-            print("weather data conditions met")
-            sky_clarity = hourly_report["weather"][0]["main"].lower()
-            temperature_celsius = hourly_report["main"]["temp"] - 273.15
-            if "rain" in sky_clarity or sky_clarity == "snow":
-                json_file.close()
-                print("onaangenaam")
-                return "onaangenaam"
-            if sky_clarity == "clear" and temperature_celsius > 15:
-                json_file.close()
-                print("aangenaam")
-                return "aangenaam"
-            else:
-                json_file.close()
-                print("neutraal")
-                return "neutraal"
-    print("weertype onbekend")
-    return "weertype onbekend"
-
-
 def fetch_rides_data(cur_op):
     print("Fetching rides data from operational database...")
     query = """
@@ -65,15 +35,40 @@ def fetch_rides_data(cur_op):
     JOIN stations st ON l.stationid = st.stationid
     JOIN subscriptions sub ON r.subscriptionid = sub.subscriptionid
     WHERE r.starttime IS NOT NULL AND r.endtime IS NOT NULL
-    AND st.zipcode IN ('2000','2018', '2020', '2030' , '2140')
     AND TO_CHAR(r.starttime, 'YYYY-MM-DD') IN ('2019-09-22', '2021-06-05', '2023-01-01', '2020-02-01', 
-        '2021-08-01', '2022-10-05', '2019-09-22', '2020-05-01', '2022-12-03', '2020-07-04',
-        '2021-02-01', '2022-02-05', '2019-11-03', '2020-02-01', '2021-01-04'); 
+        '2021-08-01', '2022-10-05', '2019-09-22', '2020-05-01', '2022-12-03', '2020-07-04', '2021-07-04',
+        '2021-02-01', '2022-02-05', '2019-11-03', '2020-02-01', '2021-01-04', '2023-05-01', '2022-11-27'); 
     """
     cur_op.execute(query)
     rides = cur_op.fetchall()
     print(f"Fetched {len(rides)} rides records.")
     return rides
+
+
+def assess_weather_type(starttime, zipcode):
+    file_path = f"./weather/{zipcode}_{starttime.date()}_{starttime.hour:02d}h.json"
+    if os.path.isfile(file_path):
+        print("file found: " + file_path)
+        with open(file_path, "r") as json_file:
+            hourly_report = json.load(json_file)
+            print("file loaded as json")
+            print(hourly_report)
+            sky_clarity = hourly_report["weather"][0]["main"].lower()
+            temperature_celsius = hourly_report["main"]["temp"] - 273.15
+            if "rain" in sky_clarity or sky_clarity == "snow":
+                json_file.close()
+                print("onaangenaam")
+                return "onaangenaam"
+            if sky_clarity == "clear" and temperature_celsius > 15:
+                json_file.close()
+                print("aangenaam")
+                return "aangenaam"
+            else:
+                json_file.close()
+                print("neutraal")
+                return "neutraal"
+    print("weertype onbekend")
+    return "weertype onbekend"
 
 
 def fetch_date_sk(cur_dwh, ride_start_date):
