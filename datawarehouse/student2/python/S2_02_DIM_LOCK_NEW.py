@@ -1,7 +1,6 @@
-import psycopg2
 from psycopg2.extras import execute_values
-import dwh_tools_stud1 as dwh
-from config_stud1 import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
+import datawarehouse.student2.python.dwh_tools as dwh
+from datawarehouse.student2.python.config.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 
 def test_connections(cur_op, cur_dwh):
@@ -29,7 +28,7 @@ def fetch_all_locks_data(cur_op):
             s.gpscoord,
             s.type AS station_type
         FROM locks l
-        JOIN stations s ON l.stationid = s.stationid
+        JOIN stations s ON l.stationid = s.stationid;
     """
     cur_op.execute(query)
     return cur_op.fetchall()
@@ -39,8 +38,8 @@ def fetch_existing_locks(cur_dwh):
     Hier worden alle bestaande lock-records uit de DWH opgehaald.
     """
     query = """
-    SELECT lockID, stationLockNr, stationAddress, stationZipCode, stationDistrict, stationCoordinations, stationType
-        FROM dim_locks
+    SELECT lockID, station_lock_nr, station_address, station_zipcode, station_district, station_coordinates, station_type
+        FROM dim_locks;
         """
 
     cur_dwh.execute(query)
@@ -82,8 +81,9 @@ def load_locks_data(cur_dwh, db_dwh, transformed_data, batch_size=1000):
     Hier gaan we batchinserts doen om de lock-gegevens in de databank op te laden (loading).
     """
     insert_query = """
-    INSERT INTO dim_locks (lockID, stationLockNr, stationAddress, stationZipCode, stationDistrict, stationCoordinations, stationType)
-    VALUES %s"""
+    INSERT INTO dim_locks (lockID, station_lock_nr, station_address, station_zipcode, station_district, station_coordinates, station_type)
+    VALUES %s
+    """
 
     for i in range (0, len(transformed_data), batch_size):
         batch = transformed_data[i:i + batch_size]

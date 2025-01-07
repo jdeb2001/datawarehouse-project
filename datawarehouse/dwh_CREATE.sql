@@ -33,25 +33,25 @@ CREATE TABLE dim_clients
     email        VARCHAR(100),
     address      VARCHAR(255),
     country_code VARCHAR(3),
-    subscriptionType VARCHAR(50),
+    subscription_type VARCHAR(50),
     scd_start    DATE    NOT NULL, -- naar scd_start en scd_end hernoemen ipv validFrom en validTo
     scd_end      DATE,
     scd_version INTEGER NOT NULL DEFAULT 1,
-    isActive     BOOLEAN NOT NULL DEFAULT true,
+    scd_active     BOOLEAN NOT NULL DEFAULT true,
     last_ride_date DATE
 );
 
 --TOOD: steppen moeten aangeduid word door lock id 0
 CREATE TABLE dim_locks
 (
-    lock_SK              SERIAL PRIMARY KEY, -- Surrogaatsleutel
-    lockID               INTEGER,            -- Originele slot-ID
-    stationLockNr        INTEGER,            -- Slotnummer binnen het station
-    stationAddress       VARCHAR(255),       -- Samengesteld adres van het station
-    stationZipCode       VARCHAR(10),        -- Postcode van het station
-    stationDistrict      VARCHAR(100),       -- District waar het station zich bevindt
-    stationCoordinations POINT,              -- GPS-coördinaten van het station, klopt POINT hiervoor?
-    stationType          VARCHAR(20)         -- Type station (bijv. 'Standard', 'Large')
+    lock_SK               SERIAL PRIMARY KEY, -- Surrogaatsleutel
+    lockID                INTEGER,            -- Originele slot-ID
+    station_lock_nr       INTEGER,            -- Slotnummer binnen het station
+    station_address       VARCHAR(255),       -- Samengesteld adres van het station
+    station_zipcode       VARCHAR(10),        -- Postcode van het station
+    station_district      VARCHAR(100),       -- District waar het station zich bevindt
+    station_coordinates   POINT,              -- GPS-coördinaten van het station, klopt POINT hiervoor?
+    station_type          VARCHAR(20)         -- Type station (bijv. 'Standard', 'Large')
 );
 
 --andere dimensies moeten nog aangemaakt worden om dit in orde te krijgen!

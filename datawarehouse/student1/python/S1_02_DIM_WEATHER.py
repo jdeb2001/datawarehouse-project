@@ -1,6 +1,6 @@
 import psycopg2
-import dwh_tools as dwh
-from config import SERVER, DATABASE_DWH, USERNAME, PASSWORD, PORT
+import datawarehouse.student1.python.dwh_tools as dwh
+from datawarehouse.student1.python.config import SERVER, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 
 def fill_table_dim_weather(cursor_dwh, table_name='dim_weather'):

@@ -1,8 +1,7 @@
 from datetime import datetime
-import psycopg2
 from psycopg2.extras import execute_values
-import dwh_tools_stud1 as dwh
-from config_stud1 import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
+import datawarehouse.student2.python.dwh_tools as dwh
+from datawarehouse.student2.python.config.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 def test_connections(cur_op, cur_dwh):
     try:
@@ -44,7 +43,7 @@ def fetch_existing_clients(cur_dwh):
     query = """
         SELECT clientID, address, country_code, scd_version 
         FROM dim_clients
-        WHERE isActive = TRUE
+        WHERE scd_active = TRUE
     """
     cur_dwh.execute(query)
     return {row[0]: (row[1], row[2], row[3]) for row in cur_dwh.fetchall()}
@@ -64,7 +63,7 @@ def process_clients(cur_op, cur_dwh, db_dwh):
         first_ride_date = first_ride_dates.get(userid, validfrom) or validfrom
         scd_start = first_ride_date.strftime('%Y-%m-%d')
         scd_end = None
-        isActive = True
+        scd_active = True
 
         if userid in existing_clients:
             existing_address, existing_country_code, scd_version = existing_clients[userid]
@@ -72,17 +71,17 @@ def process_clients(cur_op, cur_dwh, db_dwh):
                 # Update bestaande klant (SCD2)
                 update_query = """
                     UPDATE dim_clients
-                    SET scd_end = %s, isActive = FALSE
-                    WHERE clientID = %s AND isActive = TRUE
+                    SET scd_end = %s, scd_active = FALSE
+                    WHERE clientID = %s AND scd_active = TRUE
                 """
                 cur_dwh.execute(update_query, (datetime.now(), userid))
                 updates.append(userid)  # Logging of monitoring purposes
 
                 # Voeg nieuwe record toe
-                new_records.append((userid, name, address, country_code, subscriptiontypeid, scd_start, '2040-01-01', scd_version + 1, isActive, validfrom))
+                new_records.append((userid, name, address, country_code, subscriptiontypeid, scd_start, '2040-01-01', scd_version + 1, scd_active, validfrom))
         else:
             # Nieuwe klant toevoegen
-            new_records.append((userid, name, address, country_code, subscriptiontypeid, scd_start, '2040-01-01', 1, isActive, validfrom))
+            new_records.append((userid, name, address, country_code, subscriptiontypeid, scd_start, '2040-01-01', 1, scd_active, validfrom))
 
     print(f"Updated {len(updates)} existing records.")
 
@@ -90,7 +89,7 @@ def process_clients(cur_op, cur_dwh, db_dwh):
     if new_records:
         print(f"Inserting {len(new_records)} new records...")
         insert_query = """
-            INSERT INTO dim_clients (clientID, name, address, country_code, subscriptionType, scd_start, scd_end, scd_version, isActive, last_ride_date)
+            INSERT INTO dim_clients (clientID, name, address, country_code, subscription_type, scd_start, scd_end, scd_version, scd_active, last_ride_date)
             VALUES %s
         """
         execute_values(cur_dwh, insert_query, new_records)
