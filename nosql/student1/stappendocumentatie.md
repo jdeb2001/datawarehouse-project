@@ -297,6 +297,32 @@ Dataverdeling na het inladen van volledige data:
 ![img_22.png](media/img_22.png)
 
 #### Test MongoDB query api
+##### 1. Eerste 10 ritten tussen de gegeven data
 ```javascript
-db.rides.find({ starttime: { $gte: ISODate("2015-09-22T00:00:00Z"), $lt: ISODate("2019-01-23T00:00:00Z") } }).limit(10).pretty()
+db.rides.find({ starttime: { $gte: ISODate("2015-09-22T00:00:00Z"), $lt: ISODate("2019-01-23T00:00:00Z") } }).limit(10);
+```
+
+##### 2. Ritten van een bepaalde type
+```javascript
+db.rides.find({ "vehicle_info.bike_lot.bike_type.biketypedescription": "Velo E-Bike" });
+```
+
+##### 3. Eerste 5 ritten die langer dan een uur duurden
+```javascript
+db.rides.find({
+    $expr: {
+        $gt: [
+            { $subtract: [{ $toDate: "$endtime" }, { $toDate: "$starttime" }] }, // ritduur berekenen
+            3600000 // 1 uur in ms
+        ]
+    }
+});
+```
+
+##### 4. Overzicht van het aantal ritten per startpoint (station) 
+```javascript
+db.rides.aggregate([
+    { $group: { _id: "$startpoint", count: { $sum: 1 } } },
+    { $sort: { count: -1 } }
+]);
 ```
