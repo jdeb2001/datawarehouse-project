@@ -51,10 +51,9 @@ GROUP BY (fr.weather_sk, dw.weather_type);
 
 
 -- Student 2
-
 -- Wat is de invloed wan de woonplaats van de gebruikers op het gebruik van de vehicles?
 SELECT
-    REGEXP_MATCH(dc.address, '[0-9]{4} ([A-Za-z ]+)') AS residence_city,
+    TRIM(SUBSTRING(dc.address FROM '[0-9]{4} ([A-Za-z ]+)')) AS residence_city,
     COUNT(fr.ride_sk) AS ride_count
 FROM
     fact_rides fr
@@ -66,6 +65,7 @@ ORDER BY
     ride_count DESC;
 
 -- Welke sloten hebben preventief onderhoud nodig?
+-- Dit zouden we te weten kunnen komen door het aantal keer dat de lock voor een rit gebruikt is geweest:
 SELECT
     dl.lockID,
     dl.station_address,
@@ -81,10 +81,14 @@ ORDER BY
     usage_count DESC;
 
 -- Wat is de invloed van abonnementen op stationsgebruik bij opzegging?
+-- Deze query zal nog niet veel geven op dit moment, omdat bij het maken van deze dimensies nog geen klant is gemarkeerd als inactief.
+-- Het is pas wanneer deze gegevens later ingevuld worden dat deze query daadwerkelijk betekenisvolle resultaten zal geven.
 SELECT
     dl.station_address,
-    SUM(CASE WHEN dd.date <= dc.scd_end THEN 1 ELSE 0 END) AS rides_before_end,
-    SUM(CASE WHEN dd.date > dc.scd_end THEN 1 ELSE 0 END) AS rides_after_end
+    COUNT(DISTINCT CASE WHEN dd.date <= DATE(dc.scd_end) THEN fr.ride_sk ELSE NULL END) AS rides_before_end,
+    COUNT(DISTINCT CASE WHEN dd.date > DATE(dc.scd_end) THEN fr.ride_sk ELSE NULL END) AS rides_after_end,
+    COUNT(DISTINCT CASE WHEN dd.date > DATE(dc.scd_end) THEN fr.ride_sk ELSE NULL END) -
+    COUNT(DISTINCT CASE WHEN dd.date <= DATE(dc.scd_end) THEN fr.ride_sk ELSE NULL END) AS effect_on_station
 FROM
     fact_rides fr
 JOIN
@@ -95,38 +99,44 @@ JOIN
     dim_date dd ON fr.date_sk = dd.date_sk
 WHERE
     dc.scd_end IS NOT NULL  -- Alleen klanten met beëindigde abonnementen
+    AND dl.station_address IS NOT NULL
     AND dl.station_address != 'Geen locatie'
 GROUP BY
     dl.station_address
 ORDER BY
-    rides_before_end DESC, rides_after_end DESC;
+    effect_on_station DESC, rides_after_end DESC;
 
 
-SELECT * FROM dim_clients WHERE scd_end IS NOT NULL;
 
 
 -- Bijkomende vragen
--- Welke voertuigen zijn populairder? Hoe verschilt dit per seizoen?
+-- Welke dagen van de maand zijn het meest populair voor ritten, afhankelijk van seizoen?
+-- We gaan hier het aantal ritten op een bepaalde dag van de maand ophalen en op basis van de maand van de rit categoriseren per seizoen:
 SELECT
-    dl.station_address,
+    dd.month,
+    dd.day_of_month,
+    CASE
+        WHEN dd.month IN (12, 1, 2) THEN 'Winter'
+        WHEN dd.month IN (3, 4, 5) THEN 'Spring'
+        WHEN dd.month IN (6, 7, 8) THEN 'Summer'
+        ELSE 'Fall'
+    END AS season,
     COUNT(fr.ride_sk) AS ride_count
 FROM
     fact_rides fr
 JOIN
-    dim_clients dc ON fr.client_sk = dc.client_sk
-JOIN
-    dim_locks dl ON fr.start_lock_sk = dl.lock_sk
-WHERE
-    dc.scd_end IS NOT NULL  -- Alleen opgezegde abonnementen
+    dim_date dd ON fr.date_sk = dd.date_sk
 GROUP BY
-    dl.station_address
+    dd.month, dd.day_of_month, season
 ORDER BY
-    ride_count DESC;
+    season, ride_count DESC;
 
--- Welke dagen hebben gemiddeld de langste ritduur?
+-- Welke dagen van de week hebben het hoogste percentage aan ritten naar dezelfde eindlocatie als de startlocatie?
 SELECT
     dd.weekday,
-    AVG(fr.duration) AS avg_duration
+    COUNT(*) AS total_rides,
+    SUM(CASE WHEN fr.start_lock_sk = fr.end_lock_sk THEN 1 ELSE 0 END) AS same_location_rides,
+    (SUM(CASE WHEN fr.start_lock_sk = fr.end_lock_sk THEN 1 ELSE 0 END) * 100.0 / COUNT(*)) AS same_location_percentage
 FROM
     fact_rides fr
 JOIN
@@ -134,4 +144,4 @@ JOIN
 GROUP BY
     dd.weekday
 ORDER BY
-    avg_duration DESC;
+    same_location_percentage DESC;

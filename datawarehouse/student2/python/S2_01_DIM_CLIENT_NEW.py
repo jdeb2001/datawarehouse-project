@@ -1,7 +1,7 @@
 from datetime import datetime
 from psycopg2.extras import execute_values
-import datawarehouse.student1.python.dwh_tools as dwh
-from datawarehouse.student1.python.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
+import datawarehouse.student2.python.dwh_tools as dwh
+from datawarehouse.student2.python.config.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 def test_connections(cur_op, cur_dwh):
     try:
@@ -62,6 +62,7 @@ def process_clients(cur_op, cur_dwh, db_dwh):
     for userid, name, address, country_code, subscriptiontypeid, validfrom in client_data:
         first_ride_date = first_ride_dates.get(userid, validfrom) or validfrom
         scd_start = first_ride_date.strftime('%Y-%m-%d')
+        address = address.strip()
         scd_end = None
         scd_active = True
 
@@ -75,7 +76,7 @@ def process_clients(cur_op, cur_dwh, db_dwh):
                     WHERE clientID = %s AND scd_active = TRUE
                 """
                 cur_dwh.execute(update_query, (datetime.now(), userid))
-                updates.append(userid)  # Logging of monitoring purposes
+                updates.append(userid)
 
                 # Voeg nieuwe record toe
                 new_records.append((userid, name, address, country_code, subscriptiontypeid, scd_start, '2040-01-01', scd_version + 1, scd_active, validfrom))

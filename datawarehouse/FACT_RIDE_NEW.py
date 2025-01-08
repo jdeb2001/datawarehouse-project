@@ -2,8 +2,8 @@ import json
 import os
 import math
 from psycopg2.extras import execute_values
-import datawarehouse.student1.python.dwh_tools as dwh
-from datawarehouse.student1.python.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
+import datawarehouse.student2.python.dwh_tools as dwh
+from datawarehouse.student2.python.config.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 def test_connections(cur_op, cur_dwh):
     try:
@@ -124,6 +124,8 @@ def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
             print(f"Skipping ride ID {rideid}: already exists in fact_rides.")
             continue
 
+        # mogelijks optioneel: records die een latere starttime dan endtime hebben worden genegeerd
+        # om er toch voor te zorgen dat deze in de databank zitten, gewoon deze code in commentaar zetten
         if starttime > endtime:
             print(f"Skipping ride ID {rideid}: starttime ({starttime}) is later than endtime ({endtime})")
             continue
@@ -160,7 +162,7 @@ def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
             print(f"lock_sk not found for startlockid {startlockid} or endlockid {endlockid}. Skipping record.")
             continue
 
-        # Calculate duration and distance
+        # Berekenen van afstand en duur van de rit
         duration = endtime - starttime
         start_coords = lock_coords.get(startlockid)
         end_coords = lock_coords.get(endlockid)
@@ -170,8 +172,7 @@ def process_fact_rides(cur_op, cur_dwh, db_dwh, batch_size=1000):
 
     print(f"Prepared {len(fact_rides)} new fact records for insertion.")
 
-    # Load
-    # Batch insert
+    # Loading via Batch-inserts
     if fact_rides:
         print("Inserting records into fact_rides table...")
         insert_query = """
