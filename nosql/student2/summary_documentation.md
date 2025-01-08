@@ -1,5 +1,5 @@
 # Project VeloDB Neo4J
-Bij dit project hoort nog een apart Word document met iets diepgaandere documentatie van wat ik hier gedaan heb. In deze markdown staan enkel de scripts die ik heb uitgevoerd om tot mijn resultaten te komen, dus is het beter om de documentatie zelf te bekijken voor uitgebreidere informatie.
+Bij dit project hoort nog een apart Word document met iets diepgaandere documentatie van wat ik hier gedaan heb. In deze Markdown staan enkel de scripts die ik heb uitgevoerd om tot mijn resultaten te komen, dus is het beter om de documentatie zelf te bekijken voor uitgebreidere uitleg .
 ## Startdata
 Eerst importeren we onze datasets die we uit onze Postgres databank gehaald hebben. In mijn geval heb ik dit met 5 aparte .csv bestanden gedaan voor Stations, Rides, Locks, Vehicles en Users.
 
@@ -24,12 +24,7 @@ LOAD CSV WITH HEADERS FROM 'file:///locks.csv' AS row
 MERGE (s:Station {stationId: row.stationid})
 MERGE (l:Lock {lockId: row.lockid})
 ON CREATE SET l.stationLockNr = row.stationlocknr
-MERGE (l)-[:LOCATED_IN]->(s)
-WITH l, row
-FOREACH (_ IN CASE WHEN row.vehicleid IS NOT NULL AND row.vehicleid <> "" THEN [1] ELSE [] END |
-MERGE (v:Vehicle {vehicleId: row.vehicleid})
-MERGE (l)-[:HOLDS]->(v)
-);
+MERGE (l)-[:LOCATED_IN]->(s);
 ```
 
 ### Vehicles 
@@ -67,24 +62,23 @@ OPTIONAL MATCH (u:User {id: row.userid})
 
 // Maak de Ride node aan
 CREATE (r:Ride {
-rideId: row.rideid,
-startTime: datetime(replace(row.starttime, " ", "T")),
-endTime: datetime(replace(row.endtime, " ", "T"))
+    rideId: row.rideid,
+    startTime: datetime(replace(row.starttime, " ", "T")),
+    endTime: datetime(replace(row.endtime, " ", "T"))
 })
 WITH r, startLock, endLock, v, u
 FOREACH (_ IN CASE WHEN startLock IS NOT NULL THEN [1] ELSE [] END |
-MERGE (r)-[:STARTS_AT]->(startLock)
+    MERGE (r)-[:STARTS_AT]->(startLock)
 )
 FOREACH (_ IN CASE WHEN endLock IS NOT NULL THEN [1] ELSE [] END |
-MERGE (r)-[:ENDS_AT]->(endLock)
+    MERGE (r)-[:ENDS_AT]->(endLock)
 )
 FOREACH (_ IN CASE WHEN v IS NOT NULL THEN [1] ELSE [] END |
-MERGE (r)-[:USES]->(v)
+    MERGE (r)-[:USES]->(v)
 )
 FOREACH (_ IN CASE WHEN u IS NOT NULL THEN [1] ELSE [] END |
-MERGE (r)-[:INITIATED_BY]->(u)
+    MERGE (r)-[:INITIATED_BY]->(u)
 );
-
 ```
 
 ## Antwoorden op de verschillende queries:
@@ -118,19 +112,19 @@ LIMIT 10;
 ### Eigen query: vind de voertuigen die het langste stilstaan in een bepaald station na hun laatste rit
 ```cypher
 // Vind de laatste rit van elk voertuig
+// Subquery: Vind de laatste rit per voertuig
 MATCH (r:Ride)-[:ENDS_AT]->(lEnd:Lock)-[:LOCATED_IN]->(sEnd:Station),
 (r)-[:USES]->(v:Vehicle)
-WITH v.vehicleId AS VehicleID, 
-MAX(r.endTime) AS LastRideTime, 
-sEnd.stationId AS LastStation
+WITH v.vehicleId AS VehicleID, MAX(r.endTime) AS LastRideTime, sEnd.stationId AS LastStation
 
-// Controleer of het voertuig geen nieuwe rit gestart heeft sinds de laatste rit
-OPTIONAL MATCH (v)<-[:USES]-(newRide:Ride)-[:STARTS_AT]->(lStart:Lock)
+// Controleer in een subquery of er nieuwe ritten zijn gestart
+WITH VehicleID, LastRideTime, LastStation
+WHERE NOT EXISTS {
+MATCH (v:Vehicle {vehicleId: VehicleID})<-[:USES]-(newRide:Ride)
 WHERE newRide.startTime > LastRideTime
-WITH VehicleID, LastRideTime, LastStation, COUNT(newRide) AS NewRides
-WHERE NewRides = 0 // Alleen voertuigen zonder nieuwe ritten
+}
 
-// Bereken hoe lang het voertuig stilstaat en formatteer de IdleTime
+// Bereken de IdleTime
 WITH VehicleID, LastStation, duration.between(LastRideTime, datetime()) AS IdleTime
 RETURN VehicleID, 
 LastStation AS StationID,
