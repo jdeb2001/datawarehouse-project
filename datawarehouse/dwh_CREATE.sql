@@ -76,3 +76,7 @@ CREATE TABLE fact_rides
     duration      INTERVAL NOT NULL,  -- Duur van de rit
     distance      DECIMAL(10, 2)      -- Afstand van de rit in kilometer
 );
+
+CREATE INDEX idx_dim_date_month_name ON dim_date(month_name);
+CREATE INDEX idx_dim_date_date ON dim_date(date);
+CREATE INDEX idx_dim_locks_station_zipcode ON dim_locks(station_zipcode);

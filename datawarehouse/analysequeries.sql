@@ -48,6 +48,22 @@ WHERE fr.weather_sk IN (1, 2, 3)
 GROUP BY (fr.weather_sk, dw.weather_type);
 
 
+-- 4. Verschillen de drukste maanden per gemeente?
+SELECT dl.station_zipcode, dd.month_name AS "month",  COUNT(ride_sk) AS "no. of rides"
+FROM fact_rides fr
+    JOIN public.dim_date dd on dd.date_sk = fr.date_sk
+    JOIN public.dim_locks dl on dl.lock_sk = fr.start_lock_sk
+GROUP BY dl.station_zipcode, dd.month_name
+HAVING (dd.month_name, COUNT(ride_sk)) IN (SELECT dates.month_name,  COUNT(ride_sk)
+                                          FROM fact_rides
+                                              JOIN public.dim_date dates on dates.date_sk = fact_rides.date_sk
+                                              JOIN public.dim_locks locks on locks.lock_sk = fact_rides.start_lock_sk
+                                          WHERE locks.station_zipcode = dl.station_zipcode
+                                          GROUP BY dates.month_name
+                                          ORDER BY 2 DESC
+                                          FETCH FIRST 1 ROW ONLY
+                                          );
+
 
 
 -- Student 2
