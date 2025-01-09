@@ -34,7 +34,7 @@ CREATE TABLE dim_clients
     address      VARCHAR(255),
     country_code VARCHAR(3),
     subscription_type VARCHAR(50),
-    scd_start    DATE    NOT NULL, -- naar scd_start en scd_end hernoemen ipv validFrom en validTo
+    scd_start    DATE    NOT NULL,
     scd_end      DATE,
     scd_version INTEGER NOT NULL DEFAULT 1,
     scd_active     BOOLEAN NOT NULL DEFAULT true,
@@ -54,7 +54,6 @@ CREATE TABLE dim_locks
     station_type          VARCHAR(20)         -- Type station (bijv. 'Standard', 'Large')
 );
 
---andere dimensies moeten nog aangemaakt worden om dit in orde te krijgen!
 CREATE TABLE fact_rides
 (
     ride_SK       SERIAL PRIMARY KEY, -- Surrogaatsleutel

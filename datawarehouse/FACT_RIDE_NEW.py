@@ -3,7 +3,7 @@ import os
 import math
 from psycopg2.extras import execute_values
 import datawarehouse.student2.python.dwh_tools as dwh
-from datawarehouse.student2.python.config.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
+from datawarehouse.student2.python.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 def test_connections(cur_op, cur_dwh):
     try:

@@ -1,7 +1,7 @@
 from datetime import datetime
 from psycopg2.extras import execute_values
 import datawarehouse.student2.python.dwh_tools as dwh
-from datawarehouse.student2.python.config.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
+from datawarehouse.student2.python.config import SERVER, DATABASE_OP, DATABASE_DWH, USERNAME, PASSWORD, PORT
 
 def test_connections(cur_op, cur_dwh):
     try:
@@ -78,8 +78,8 @@ def process_clients(cur_op, cur_dwh, db_dwh):
                 cur_dwh.execute(update_query, (datetime.now(), userid))
                 updates.append(userid)
 
-                # Voeg nieuwe record toe
-                new_records.append((userid, name, address, country_code, subscriptiontypeid, scd_start, '2040-01-01', scd_version + 1, scd_active, validfrom))
+                # Voeg nieuwe record toe met de datum van wanneer het record geupdatet is in scd_start
+                new_records.append((userid, name, address, country_code, subscriptiontypeid, datetime.now(), '2040-01-01', scd_version + 1, scd_active, validfrom))
         else:
             # Nieuwe klant toevoegen
             new_records.append((userid, name, address, country_code, subscriptiontypeid, scd_start, '2040-01-01', 1, scd_active, validfrom))

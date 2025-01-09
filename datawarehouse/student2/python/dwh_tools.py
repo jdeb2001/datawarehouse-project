@@ -1,5 +1,5 @@
 import psycopg2
-from .config.config import SERVER, DATABASE_OP, USERNAME, PASSWORD, PORT
+from datawarehouse.student2.python.config import SERVER, DATABASE_OP, USERNAME, PASSWORD, PORT
 
 def establish_connection(server=SERVER, database=DATABASE_OP, username=USERNAME, password=PASSWORD, port=PORT):
     """

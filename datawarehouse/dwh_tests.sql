@@ -23,3 +23,11 @@ JOIN public.dim_date dd on dd.date_sk = fr.date_sk
 JOIN public.dim_locks dl on dl.lock_sk = fr.start_lock_sk
 WHERE weather_sk = 3
 AND dl.stationzipcode = '2060';
+
+SELECT *
+FROM dim_clients
+WHERE clientid = 1;
+
+UPDATE dim_clients
+SET address = 'TEST ADRES 2610 WILRIJK'
+WHERE clientid = 1 AND scd_active = TRUE;
